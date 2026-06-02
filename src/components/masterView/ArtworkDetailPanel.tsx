@@ -137,6 +137,10 @@ export const ArtworkDetailPanel: React.FC<ArtworkDetailPanelProps> = ({
   staffRemarks,
   setShowImagePreview
 }) => {
+  const actualPrice = sale?.discountedPrice !== undefined && sale?.discountedPrice !== null ? sale.discountedPrice : (artwork.price || 0);
+  const balance = sale ? actualPrice - (sale.downpayment || 0) - (sale.installments || []).filter(i => !i.isPending).reduce((sum, inst) => sum + inst.amount, 0) : 0;
+  const isFullyPaid = balance <= 0 && !!sale;
+
   return (
     <div className="lg:col-span-2 bg-white rounded-md shadow-sm border border-neutral-200 flex flex-col md:flex-row overflow-hidden items-stretch">
       <div className="w-full md:w-[50%] bg-neutral-100 flex items-center justify-center relative min-h-[500px] border-r border-neutral-100">
@@ -215,12 +219,6 @@ export const ArtworkDetailPanel: React.FC<ArtworkDetailPanelProps> = ({
                 )}
               </div>
               {(() => {
-                const actualPrice = sale?.discountedPrice !== undefined && sale?.discountedPrice !== null ? sale.discountedPrice : (artwork.price || 0);
-                const balance = actualPrice -
-                  (sale?.downpayment || 0) -
-                  (sale?.installments || []).filter(i => !i.isPending).reduce((sum, inst) => sum + inst.amount, 0);
-                 
-                 const isFullyPaid = balance <= 0 && !!sale;
                  const showBalance = sale && !sale.isCancelled && (sale.isDownpayment || sale.status === 'Approved');
 
                  if (!sale || sale.isCancelled || displayStatus === ArtworkStatus.AVAILABLE || !showBalance) return null;
@@ -242,7 +240,11 @@ export const ArtworkDetailPanel: React.FC<ArtworkDetailPanelProps> = ({
               <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
                 <div className="p-4 bg-neutral-50/50 border-b border-neutral-100 flex items-center justify-between">
                   <h4 className="text-xs font-black text-neutral-900 uppercase tracking-widest">Payment Ledger</h4>
-                  <span className="text-[10px] font-bold text-neutral-400">{sale.installments?.length || 0} Installments recorded</span>
+                  {isFullyPaid ? (
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Fully Paid</span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-neutral-400">{sale.installments?.length || 0} Installments recorded</span>
+                  )}
                 </div>
                 
                 <div className="divide-y divide-neutral-50">
@@ -423,7 +425,9 @@ export const ArtworkDetailPanel: React.FC<ArtworkDetailPanelProps> = ({
                 {/* Footer Message */}
                 {sale.installments?.length === 0 && !sale.pendingDownpaymentEdit && (
                   <div className="p-8 text-center bg-neutral-50/50">
-                    <p className="text-xs font-bold text-neutral-400 italic">No additional installments recorded for this sale.</p>
+                    <p className="text-xs font-bold text-neutral-400 italic">
+                      {isFullyPaid ? 'This sale has been fully paid.' : 'No additional installments recorded for this sale.'}
+                    </p>
                   </div>
                 )}
               </div>
