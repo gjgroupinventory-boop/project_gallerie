@@ -46,7 +46,7 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing' | 'history' | 'on-hold' | 'returns'>('incoming');
   const [searchTerm] = useState('');
   const [detailsModal, setDetailsModal] = useState<TransferRequest | null>(null);
-  const [confirmationModal, setConfirmationModal] = useState<{ request: TransferRequest; type: 'accept' | 'decline' | 'hold' | 'delete' } | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState<{ request?: TransferRequest; type: 'accept' | 'decline' | 'hold' | 'delete' | 'bulk-delete'; bulkIds?: string[] } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [declineResubmissionReasons, setDeclineResubmissionReasons] = useState<string[]>([]);
   const [remarks, setRemarks] = useState('');
@@ -446,8 +446,7 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
               {onBulkDelete && (
                 <button
                   onClick={() => {
-                    onBulkDelete(selectedIds);
-                    setSelectedIds([]);
+                    setConfirmationModal({ type: 'bulk-delete', bulkIds: selectedIds });
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-900/20"
                 >
@@ -601,11 +600,12 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
               {confirmationModal.type === 'decline' && 'Decline & Request Resubmission'}
               {confirmationModal.type === 'hold' && 'Put Request On Hold'}
               {confirmationModal.type === 'delete' && 'Delete Transfer Record'}
+              {confirmationModal.type === 'bulk-delete' && 'Bulk Delete Transfer Records'}
             </h3>
             {confirmationModal.type === 'decline' ? (
               <div className="mb-6 space-y-4">
                 <p className="text-sm text-neutral-600">
-                  Select what the requesting branch must correct before resubmitting the transfer for <span className="font-semibold">{confirmationModal.request.artworkTitle}</span>.
+                  Select what the requesting branch must correct before resubmitting the transfer for <span className="font-semibold">{confirmationModal.request?.artworkTitle}</span>.
                 </p>
                 <div className="grid grid-cols-1 gap-2">
                   {[
@@ -615,9 +615,9 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
                     <button
                       key={reason.label}
                       onClick={() => setDeclineResubmissionReasons(prev =>
-                        prev.includes(reason.label)
-                          ? prev.filter(item => item !== reason.label)
-                          : [...prev, reason.label]
+                         prev.includes(reason.label)
+                           ? prev.filter(item => item !== reason.label)
+                           : [...prev, reason.label]
                       )}
                       className={`rounded-sm border px-4 py-3 text-left transition-all ${
                         declineResubmissionReasons.includes(reason.label)
@@ -637,16 +637,21 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
                   </p>
                 </div>
               </div>
+            ) : confirmationModal.type === 'bulk-delete' ? (
+              <p className="text-neutral-600 mb-6 text-sm">
+                Are you sure you want to permanently delete <span className="font-bold text-red-600">{confirmationModal.bulkIds?.length}</span> transfer record(s)?
+                This action is irreversible and will remove them from the database.
+              </p>
             ) : (
               <p className="text-neutral-600 mb-6 text-sm">
-                Are you sure you want to {confirmationModal.type === 'hold' ? 'put on hold' : confirmationModal.type} the transfer request for <span className="font-semibold">{confirmationModal.request.artworkTitle}</span>?
+                Are you sure you want to {confirmationModal.type === 'hold' ? 'put on hold' : confirmationModal.type} the transfer request for <span className="font-semibold">{confirmationModal.request?.artworkTitle}</span>?
                 {confirmationModal.type === 'accept' && ' This will move the artwork to your branch inventory.'}
                 {confirmationModal.type === 'hold' && ' This will move the request to the On Hold tab for later review.'}
                 {confirmationModal.type === 'delete' && ' This will permanently remove this transfer record from the database.'}
               </p>
             )}
 
-            {confirmationModal.type !== 'delete' && (
+            {confirmationModal.type !== 'delete' && confirmationModal.type !== 'bulk-delete' && (
               <div className="mb-6 space-y-1.5">
                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 flex items-center justify-between">
                   <span>Administrative Remarks</span>
@@ -675,38 +680,43 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
                 onClick={async () => {
                   const req = confirmationModal.request;
                   const type = confirmationModal.type;
+                  const bulkIds = confirmationModal.bulkIds;
 
                   await wrapAction(async () => {
-                    if (type === 'accept') {
+                    if (type === 'accept' && req) {
                       await Promise.resolve(onAccept(req, remarks));
-                    } else if (type === 'decline') {
+                    } else if (type === 'decline' && req) {
                       await Promise.resolve(onDecline(req, declineResubmissionReasons.join(', '), remarks));
-                    } else if (type === 'hold') {
+                    } else if (type === 'hold' && req) {
                       await Promise.resolve(onHold(req, remarks));
-                    } else if (type === 'delete') {
+                    } else if (type === 'delete' && req) {
                       await Promise.resolve(onDelete?.(req));
+                    } else if (type === 'bulk-delete' && bulkIds) {
+                      await Promise.resolve(onBulkDelete?.(bulkIds));
+                      setSelectedIds([]);
                     }
                   }, type === 'accept' ? 'Processing Transfer Acceptance...' :
                     type === 'decline' ? 'Declining Transfer Request...' :
-                      type === 'hold' ? 'Suspending Request...' : 'Decommissioning Transfer Record...');
+                    type === 'hold' ? 'Suspending Request...' : 
+                    type === 'bulk-delete' ? 'Decommissioning Bulk Transfer Records...' : 'Decommissioning Transfer Record...');
 
                   setConfirmationModal(null);
                   setDeclineResubmissionReasons([]);
                   setRemarks('');
                 }}
-                disabled={isProcessing || (confirmationModal.type === 'decline' && (declineResubmissionReasons.length === 0 || !remarks.trim())) || (confirmationModal.type !== 'delete' && !remarks.trim())}
+                disabled={isProcessing || (confirmationModal.type === 'decline' && (declineResubmissionReasons.length === 0 || !remarks.trim())) || (confirmationModal.type !== 'delete' && confirmationModal.type !== 'bulk-delete' && !remarks.trim())}
                 className={`px-4 py-2 rounded-md transition-colors font-medium shadow-sm ${confirmationModal.type === 'accept'
                   ? 'bg-neutral-900 text-white hover:bg-black'
                   : confirmationModal.type === 'hold'
                     ? 'bg-neutral-500 text-white hover:bg-neutral-600'
-                    : confirmationModal.type === 'delete'
+                    : confirmationModal.type === 'delete' || confirmationModal.type === 'bulk-delete'
                       ? 'bg-red-600 text-white hover:bg-red-700'
                       : 'bg-red-600 text-white hover:bg-red-700'
                   }`}
               >
                 {confirmationModal.type === 'accept' ? 'Accept Transfer' :
                  confirmationModal.type === 'hold' ? 'On Hold' :
-                 confirmationModal.type === 'delete' ? 'Delete Record' : 'Decline & Request Resubmission'}
+                 confirmationModal.type === 'delete' || confirmationModal.type === 'bulk-delete' ? 'Delete' : 'Decline & Request Resubmission'}
               </button>
             </div>
           </div>

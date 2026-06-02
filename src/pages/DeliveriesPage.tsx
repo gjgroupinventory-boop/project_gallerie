@@ -91,6 +91,13 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
     return () => window.clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const canAccessRequestsTab = userPermissions?.accessibleTabs?.includes('delivery-requests') ?? true;
+    if (activeTab === 'requests' && !canAccessRequestsTab) {
+      setActiveTab('active');
+    }
+  }, [activeTab, userPermissions]);
+
   const getDeliveryDueTime = (sale: SaleRecord) => {
     const dateValue = sale.deliveryRequest?.deliveryDate || sale.deliveryDate;
     if (!dateValue) return null;
@@ -507,7 +514,12 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
                 { id: 'pending', label: 'Pending', icon: Clock, count: tabCounts.pending, color: '#ffb900' },
                 { id: 'delivered', label: 'Delivered', icon: CheckCircle2, count: tabCounts.delivered, color: '#0078d4' },
                 { id: 'failed', label: 'Failed', icon: AlertCircle, count: tabCounts.failed, color: '#d13438' }
-              ].map(tab => {
+              ].filter(tab => {
+                if (tab.id === 'requests') {
+                  return userPermissions?.accessibleTabs?.includes('delivery-requests') ?? true;
+                }
+                return true;
+              }).map(tab => {
                 const isActive = activeTab === tab.id;
                 return (
                   <motion.button

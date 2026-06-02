@@ -37,7 +37,8 @@ export const useEventOperations = () => {
         status: EventStatus.UPCOMING,
         artworkIds: eventData.artworkIds || [],
         type: eventData.type || 'Exhibition',
-        isStrictDuration: eventData.isStrictDuration
+        isStrictDuration: eventData.isStrictDuration,
+        logoUrl: eventData.logoUrl || ''
       };
 
       const updatedArtworks = artworks.map(a => {

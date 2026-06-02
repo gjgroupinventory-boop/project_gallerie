@@ -162,7 +162,15 @@ export const useArtworkSales = () => {
 
     const previousArtworks = artworks;
     const previousArtwork = artworks.find(a => String(a.id) === String(id));
-    const agentName = currentUser?.name || 'Unknown';
+    let agentName = currentUser?.name || 'Unknown';
+    if (remarks && remarks.includes('Handling Agent:')) {
+      const match = remarks.match(/Handling Agent:\s*(.*)$/);
+      if (match && match[1]) {
+        const inputtedAgent = match[1].trim();
+        const branchName = currentUser?.branch || 'Main';
+        agentName = `${branchName} — ${inputtedAgent}`;
+      }
+    }
     const agentId = currentUser?.id;
     const { updatedArtworks, newSale } = applySingleSale(
       artworks,
@@ -218,7 +226,7 @@ export const useArtworkSales = () => {
       return false;
     }
 
-    const { agentId: _ignoredAgentId, discountPercentage: _ignoredPct, discountedPrice: _ignoredDp, ...persistedSale } = newSale;
+    const { discountPercentage: _ignoredPct, discountedPrice: _ignoredDp, ...persistedSale } = newSale;
     const serializedSale = {
       ...persistedSale,
       itdrUrl: secureItdr && secureItdr.length > 0 ? JSON.stringify(secureItdr) : null,
@@ -261,7 +269,9 @@ export const useArtworkSales = () => {
     clientEmail?: string,
     clientContact?: string,
     perArtworkDownpayments?: Record<string, number>,
-    isDownpayment?: boolean
+    isDownpayment?: boolean,
+    discountPercentage?: Record<string, number> | number,
+    remarks?: string
   ) => {
     const duplicateIds = ids.filter(id => getPendingSalesForArtwork(id, sales).length > 0);
     if (duplicateIds.length > 0) {
@@ -269,7 +279,15 @@ export const useArtworkSales = () => {
       return false;
     }
 
-    const agentName = currentUser?.name || 'Unknown';
+    let agentName = currentUser?.name || 'Unknown';
+    if (remarks && remarks.includes('Handling Agent:')) {
+      const match = remarks.match(/Handling Agent:\s*(.*)$/);
+      if (match && match[1]) {
+        const inputtedAgent = match[1].trim();
+        const branchName = currentUser?.branch || 'Main';
+        agentName = `${branchName} — ${inputtedAgent}`;
+      }
+    }
     const agentId = currentUser?.id;
     const previousArtworks = [...artworks];
     const { updatedArtworks, newSales } = buildBulkSale(
@@ -285,7 +303,9 @@ export const useArtworkSales = () => {
       downpayment,
       agentId,
       perArtworkDownpayments,
-      isDownpayment
+      isDownpayment,
+      discountPercentage,
+      remarks
     );
     setArtworks(updatedArtworks);
     setAllArtworksIncludingDeleted(updatedArtworks);
@@ -308,7 +328,7 @@ export const useArtworkSales = () => {
       return false;
     }
 
-    const persistedSales = processedNewSales.map(({ agentId: _ignoredAgentId, ...sale }) => ({
+    const persistedSales = processedNewSales.map((sale) => ({
       ...sale,
       itdrUrl: sale.itdrUrl && sale.itdrUrl.length > 0 ? JSON.stringify(sale.itdrUrl) : null,
       rsaUrl: sale.rsaUrl && sale.rsaUrl.length > 0 ? JSON.stringify(sale.rsaUrl) : null,

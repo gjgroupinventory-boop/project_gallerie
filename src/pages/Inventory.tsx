@@ -96,6 +96,8 @@ const Inventory: React.FC<InventoryProps> = ({
   const [exhibitFilter, setExhibitFilter] = useState('All');
   const [clientFilter, setClientFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('All');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
@@ -264,6 +266,12 @@ const Inventory: React.FC<InventoryProps> = ({
 
 
 
+  const maxPossiblePrice = useMemo(() => {
+    if (artworks.length === 0) return 2000000;
+    const prices = artworks.map(a => a.price || 0);
+    return Math.max(...prices, 100000);
+  }, [artworks]);
+
   const baseFilteredArtworks = useMemo(() => {
     return artworks.filter(art => {
       const matchesSearch =
@@ -297,9 +305,18 @@ const Inventory: React.FC<InventoryProps> = ({
           matchesDate = effM === parseInt(dateMonthFilter, 10);
         }
       }
-      return matchesSearch && matchesBranch && matchesDate && matchesArtist && matchesMedium && matchesSize && matchesExhibit && matchesClient && matchesType;
+
+      let matchesPrice = true;
+      if (minPrice) {
+        matchesPrice = matchesPrice && (art.price >= parseFloat(minPrice));
+      }
+      if (maxPrice) {
+        matchesPrice = matchesPrice && (art.price <= parseFloat(maxPrice));
+      }
+
+      return matchesSearch && matchesBranch && matchesDate && matchesArtist && matchesMedium && matchesSize && matchesExhibit && matchesClient && matchesType && matchesPrice;
     });
-  }, [artworks, searchTerm, branchFilter, dateMonthFilter, dateYearFilter, artistFilter, mediumFilter, sizeFilter, exhibitFilter, clientFilter, typeFilter]);
+  }, [artworks, searchTerm, branchFilter, dateMonthFilter, dateYearFilter, artistFilter, mediumFilter, sizeFilter, exhibitFilter, clientFilter, typeFilter, minPrice, maxPrice]);
 
   const importLogArtworksSet = useMemo(() => {
     if (!selectedImportLogId || !importLogs) return null;
@@ -1067,6 +1084,11 @@ const Inventory: React.FC<InventoryProps> = ({
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         events={events}
+        minPrice={minPrice}
+        setMinPrice={setMinPrice}
+        maxPrice={maxPrice}
+        setMaxPrice={setMaxPrice}
+        maxPossiblePrice={maxPossiblePrice}
       />
 
       <InventoryStats inventoryInsights={inventoryInsights} />

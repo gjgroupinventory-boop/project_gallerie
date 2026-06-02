@@ -81,8 +81,8 @@ export const useAccountsSync = ({
     };
 
     void syncAccounts();
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+    const channel = supabase.channel(`artisflow-accounts-sync-${currentUser.id}`);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const newUser = normalizeAccount(mapFromSnakeCase([payload.new])[0] as UserAccount);
           setAccounts(prev => prev.some(a => a.id === newUser.id) ? prev : [...prev, newUser]);
@@ -94,7 +94,7 @@ export const useAccountsSync = ({
         }
       });
 
-    subscribeGlobalSyncChannel();
-    return () => { unsubscribeGlobalSyncChannel(); };
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser, activeTab, accounts.length, setAccounts, setIsLoadingUsers]);
 };

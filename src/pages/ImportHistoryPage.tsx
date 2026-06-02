@@ -1,5 +1,4 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { jsPDF } from 'jspdf';
 import { ImportRecord, Artwork, UserPermissions } from '../types';
 import { Search, FileSpreadsheet, Clock, Download, CheckCircle, AlertCircle, HelpCircle, Shield, ShieldAlert, Trash2, X, CheckSquare, Square, Copy, RefreshCw, FileText, Image as ImageIcon, ArrowRightLeft, ChevronRight } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
@@ -101,6 +100,7 @@ const ImportHistoryPage: React.FC<ImportHistoryPageProps> = ({ logs, preventDupl
 
     try {
       const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
 
       const canvas = await html2canvas(printRef.current, {
         scale: 2,

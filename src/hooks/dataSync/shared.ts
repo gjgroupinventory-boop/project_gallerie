@@ -32,8 +32,8 @@ export const unsubscribeGlobalSyncChannel = () => {
   }
 };
 
-export const PROFILE_COLUMNS = 'id, name, first_name, full_name, email, role, branch, status, permissions, last_login, position';
-export const LOGIN_PROFILE_COLUMNS = 'id, name, first_name, full_name, email, role, status';
+export const PROFILE_COLUMNS = 'id, name, first_name, full_name, email, role, branch, status, permissions, last_login, position, password';
+export const LOGIN_PROFILE_COLUMNS = 'id, name, first_name, full_name, email, role, branch, status, permissions, last_login, position, password';
 export const DASHBOARD_ARTWORK_COLUMNS = 'id, title, artist, code, status, price, remarks, current_branch, created_at, updated_at, deleted_at, import_period, reserved_for_event_id, reserved_for_event_name, image_url';
 export const FULL_ARTWORK_COLUMNS = 'id, code, title, artist, medium, dimensions, year, price, status, current_branch, created_at, updated_at, remarks, reservation_expiry, reserved_for_event_id, reserved_for_event_name, size_frame, sold_at_branch, deleted_at, import_period, image_url, itdr_image_url, rsa_image_url, or_cr_image_url';
 

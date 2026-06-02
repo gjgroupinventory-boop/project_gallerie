@@ -20,6 +20,7 @@ interface AccountManagementProps {
   onUpdateAccount: (id: string, updates: Partial<UserAccount>) => void;
   onBulkDelete?: (ids: string[]) => void;
   onBulkUpdateStatus?: (ids: string[], status: 'Active' | 'Inactive') => void;
+  onBulkUpdatePermissions?: (ids: string[], permissions: UserPermissions) => void;
 }
 
 interface PermissionsSelectorProps {
@@ -30,6 +31,7 @@ interface PermissionsSelectorProps {
   };
   handlePermissionChange: (key: keyof UserPermissions) => void;
   handleTabPermissionChange: (tabId: string) => void;
+  onApplyPreset: (role: UserRole) => void;
 }
 
 const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
@@ -37,11 +39,39 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
   formData,
   handlePermissionChange,
   handleTabPermissionChange,
+  onApplyPreset,
 }) => (
   <div className="space-y-6 pt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
     {activeModalTab === 'permissions' && (
       <div className="space-y-6">
         <div>
+          <div className="space-y-2 mb-6 bg-neutral-50 p-3.5 rounded border border-neutral-100">
+            <span className="text-[9px] font-black text-neutral-400 uppercase tracking-[0.2em] block">Apply Role Preset</span>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => onApplyPreset(UserRole.BRANCH_USER)}
+                className="w-full py-2.5 bg-white hover:bg-neutral-900 hover:text-white border border-neutral-200 text-neutral-700 text-[10px] font-black uppercase tracking-wider rounded transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                Branch User
+              </button>
+              <button
+                type="button"
+                onClick={() => onApplyPreset(UserRole.INVENTORY_PERSONNEL)}
+                className="w-full py-2.5 bg-white hover:bg-neutral-900 hover:text-white border border-neutral-200 text-neutral-700 text-[10px] font-black uppercase tracking-wider rounded transition-all cursor-pointer shadow-sm active:scale-95 truncate px-1"
+                title="Inventory Personnel"
+              >
+                Inventory
+              </button>
+              <button
+                type="button"
+                onClick={() => onApplyPreset(UserRole.ADMIN)}
+                className="w-full py-2.5 bg-white hover:bg-neutral-900 hover:text-white border border-neutral-200 text-neutral-700 text-[10px] font-black uppercase tracking-wider rounded transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                Admin
+              </button>
+            </div>
+          </div>
           <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-4">Access Level & Permissions</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
@@ -162,19 +192,46 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
   onUpdateStatus, 
   onUpdateAccount, 
   onBulkDelete, 
-  onBulkUpdateStatus 
+  onBulkUpdateStatus,
+  onBulkUpdatePermissions
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    variant: 'success' | 'error' | 'warning';
+  } | null>(null);
+
+  const showToastMessage = (title: string, message: string, variant: 'success' | 'error' | 'warning' = 'success') => {
+    setToast({ show: true, title, message, variant });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<UserAccount | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [deletingAccountInfo, setDeletingAccountInfo] = useState<{ id: string; name: string } | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'details' | 'permissions' | 'tabs'>('details');
   const [activeTab, setActiveTab] = useState<'staff' | 'exclusive'>('staff');
   const [showHiddenTabsPanel, setShowHiddenTabsPanel] = useState(false);
+  const [showShortcutPresets, setShowShortcutPresets] = useState(false);
+  const [presetTargetRole, setPresetTargetRole] = useState<UserRole>(UserRole.BRANCH_USER);
+  const [presetPermissions, setPresetPermissions] = useState<UserPermissions>(getDefaultPermissions(UserRole.BRANCH_USER));
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const hiddenStorageKey = 'sidebar-hidden-tabs';
+
+  useEffect(() => {
+    const matching = accounts.find(a => a.role === presetTargetRole);
+    if (matching && matching.permissions) {
+      setPresetPermissions(matching.permissions);
+    } else {
+      setPresetPermissions(getDefaultPermissions(presetTargetRole));
+    }
+  }, [presetTargetRole, accounts]);
 
   const [formData, setFormData] = useState<{
     firstName: string;
@@ -231,6 +288,14 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
   };
 
   const handleRoleChange = (role: UserRole) => {
+    setFormData(prev => ({
+      ...prev,
+      role,
+      permissions: getDefaultPermissions(role)
+    }));
+  };
+
+  const handleApplyPreset = (role: UserRole) => {
     setFormData(prev => ({
       ...prev,
       role,
@@ -331,9 +396,7 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
 
   const handleDeleteSingle = (id: string, name: string) => {
     if (!onBulkDelete) return;
-    if (window.confirm(`Are you sure you want to delete the account for "${name}"? This action cannot be undone.`)) {
-      onBulkDelete([id]);
-    }
+    setDeletingAccountInfo({ id, name });
   };
 
 
@@ -347,8 +410,30 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
         <div className="flex items-center space-x-3">
           <button
             type="button"
-            onClick={() => setShowHiddenTabsPanel(prev => !prev)}
-            className="p-3 rounded-md border border-neutral-200 text-neutral-400 hover:text-neutral-900 hover:border-neutral-300 bg-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+            onClick={() => {
+              setShowShortcutPresets(prev => !prev);
+              setShowHiddenTabsPanel(false);
+            }}
+            className={`flex items-center space-x-2 px-4 py-3 rounded-md border text-xs font-bold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
+              showShortcutPresets 
+                ? 'bg-neutral-950 text-white border-neutral-950 font-black' 
+                : 'bg-white text-neutral-700 border-neutral-200 hover:text-neutral-900 hover:border-neutral-300'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            <span>Shortcut Presets</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowHiddenTabsPanel(prev => !prev);
+              setShowShortcutPresets(false);
+            }}
+            className={`p-3 rounded-md border text-neutral-400 hover:text-neutral-900 hover:border-neutral-300 bg-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all cursor-pointer ${
+              showHiddenTabsPanel ? 'border-neutral-900 text-neutral-900' : 'border-neutral-200'
+            }`}
             aria-label="Toggle hidden navigation tabs"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -371,7 +456,7 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
               });
               setShowAddModal(true);
             }}
-            className="flex items-center space-x-2 bg-neutral-900 text-white px-6 py-3 rounded-md hover:bg-black transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 font-bold"
+            className="flex items-center space-x-2 bg-neutral-900 text-white px-6 py-3 rounded-md hover:bg-black transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 font-bold cursor-pointer"
           >
             {ICONS.Add}
             <span>Create Branch Account</span>
@@ -422,6 +507,221 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {showShortcutPresets && (
+        <div className="bg-white text-neutral-900 rounded-md p-6 border border-neutral-200 shadow-lg space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-full bg-neutral-900 flex items-center justify-center text-white">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-neutral-900">Filtered Permission Changer (Shortcut Presets)</h3>
+                <p className="text-xs text-neutral-500">Toggling any permission below will automatically apply it to ALL accounts matching the selected system role.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowShortcutPresets(false)}
+              className="text-neutral-400 hover:text-neutral-900 cursor-pointer transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex space-x-1.5 bg-neutral-100 p-1 rounded-sm w-fit border border-neutral-200/50 shadow-inner">
+            {[UserRole.BRANCH_USER, UserRole.INVENTORY_PERSONNEL, UserRole.ADMIN].map(role => {
+              const count = accounts.filter(a => a.role === role).length;
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setPresetTargetRole(role)}
+                  className={`px-4 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    presetTargetRole === role
+                      ? 'bg-neutral-900 text-white shadow'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  {role} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Column 1: Access Level & Permissions */}
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">Access Level & Permissions</h4>
+              <div className="space-y-3">
+                {[
+                  { key: 'canAddArtwork', label: 'Add Artwork' },
+                  { key: 'canEditArtwork', label: 'Edit Artwork' },
+                  { key: 'canManageAccounts', label: 'Manage Accounts' },
+                  { key: 'canManageEvents', label: 'Manage Events & Auctions' },
+                  { key: 'canAccessCertificate', label: 'Access Certificates' },
+                  { key: 'canAttachITDR', label: 'Attach IT/DR/RSA/AR/OR/CR' },
+                  { key: 'canDeleteArtwork', label: 'Delete Artwork' },
+                  { key: 'canSellArtwork', label: 'Sell Artwork' },
+                  { key: 'canReserveArtwork', label: 'Reserve Artwork' },
+                  { key: 'canTransferArtwork', label: 'Transfer Artwork' },
+                  { key: 'canViewSalesHistory', label: 'View Sales History' },
+                  { key: 'canApproveFinance', label: 'Approve Finance' },
+                  { key: 'canApproveLogistics', label: 'Approve Logistics' },
+                  { key: 'canAccessAuditLogs', label: 'Access Audit Logs' },
+                ].map(({ key, label }) => {
+                  const isChecked = !!presetPermissions[key as keyof UserPermissions];
+                  return (
+                    <label key={key} className="flex items-center space-x-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                        isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                      }`}>
+                        {isChecked && (
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={isChecked}
+                        onChange={() => {
+                          const nextPermissions = {
+                            ...presetPermissions,
+                            [key]: !presetPermissions[key as keyof UserPermissions]
+                          };
+                          setPresetPermissions(nextPermissions);
+                        }}
+                      />
+                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Column 2: View Control */}
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">View Control</h4>
+              <div className="space-y-3">
+                {[
+                  { key: 'canViewReserved', label: 'Reserved Artworks' },
+                  { key: 'canViewAuctioned', label: 'Auctioned Artworks' },
+                  { key: 'canViewExhibit', label: 'Exhibit Artworks' },
+                  { key: 'canViewForFraming', label: 'Framing Artworks' },
+                  { key: 'canViewBackToArtist', label: 'Back to Artist Artworks' },
+                ].map(({ key, label }) => {
+                  const isChecked = !!presetPermissions[key as keyof UserPermissions];
+                  return (
+                    <label key={key} className="flex items-center space-x-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                        isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                      }`}>
+                        {isChecked && (
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={isChecked}
+                        onChange={() => {
+                          const nextPermissions = {
+                            ...presetPermissions,
+                            [key]: !presetPermissions[key as keyof UserPermissions]
+                          };
+                          setPresetPermissions(nextPermissions);
+                        }}
+                      />
+                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Column 3: Artflow Tabs */}
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">Artflow Tabs (Navigation)</h4>
+              <div className="space-y-3">
+                {APP_TABS.map((tab) => {
+                  const isAccessible = (presetPermissions.accessibleTabs && Array.isArray(presetPermissions.accessibleTabs))
+                    ? presetPermissions.accessibleTabs.includes(tab.id)
+                    : getDefaultAccessibleTabs(presetTargetRole).includes(tab.id);
+
+                  return (
+                    <label key={tab.id} className="flex items-center space-x-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                        isAccessible ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                      }`}>
+                        {isAccessible && (
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={isAccessible}
+                        onChange={() => {
+                          const currentTabs = presetPermissions.accessibleTabs || getDefaultAccessibleTabs(presetTargetRole);
+                          const nextTabs = currentTabs.includes(tab.id)
+                            ? currentTabs.filter(id => id !== tab.id)
+                            : [...currentTabs, tab.id];
+                          
+                          const nextPermissions = {
+                            ...presetPermissions,
+                            accessibleTabs: nextTabs
+                          };
+                          setPresetPermissions(nextPermissions);
+                        }}
+                      />
+                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{tab.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4 border-t border-neutral-100">
+            <button
+              type="button"
+              onClick={() => {
+                const targetAccounts = accounts.filter(a => a.role === presetTargetRole);
+                if (targetAccounts.length === 0) {
+                  showToastMessage(
+                    'Update Failed',
+                    `No accounts currently have the role "${presetTargetRole}". Add accounts of this role first.`,
+                    'warning'
+                  );
+                  return;
+                }
+                if (onBulkUpdatePermissions) {
+                  onBulkUpdatePermissions(targetAccounts.map(a => a.id), presetPermissions);
+                }
+                showToastMessage(
+                  'Presets Applied',
+                  `Permissions updated successfully for all ${targetAccounts.length} ${presetTargetRole} accounts!`,
+                  'success'
+                );
+                setShowShortcutPresets(false);
+              }}
+              className="px-6 py-2.5 bg-neutral-900 text-white hover:bg-black text-xs font-bold uppercase tracking-wider rounded transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-2"
+            >
+              Save Preset & Apply to Role
+            </button>
           </div>
         </div>
       )}
@@ -688,6 +988,7 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
                   formData={formData}
                   handlePermissionChange={handlePermissionChange}
                   handleTabPermissionChange={handleTabPermissionChange}
+                  onApplyPreset={handleApplyPreset}
                 />
               )}
 
@@ -841,6 +1142,7 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
                   formData={formData}
                   handlePermissionChange={handlePermissionChange}
                   handleTabPermissionChange={handleTabPermissionChange}
+                  onApplyPreset={handleApplyPreset}
                 />
               )}
 
@@ -913,6 +1215,46 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
         </div>
       )}
 
+      {deletingAccountInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-md w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-8 py-6 border-b border-neutral-100">
+              <h3 className="text-lg font-bold text-neutral-900">Delete Staff Account</h3>
+            </div>
+            <div className="p-8 space-y-4">
+              <p className="text-sm text-neutral-600">
+                Are you sure you want to delete the account for <strong className="text-neutral-900 font-bold">"{deletingAccountInfo.name}"</strong>?
+              </p>
+              <p className="text-xs text-neutral-500 bg-red-50 text-red-700/80 p-3 rounded-sm border border-red-100 flex items-center gap-2">
+                <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                This action is permanent and cannot be undone.
+              </p>
+            </div>
+            <div className="px-8 py-6 bg-neutral-50 flex justify-end space-x-3 border-t border-neutral-100">
+              <button 
+                onClick={() => setDeletingAccountInfo(null)} 
+                className="px-6 py-2.5 rounded-sm font-medium text-neutral-600 hover:bg-white border border-neutral-200 transition-colors cursor-pointer text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  if (onBulkDelete && deletingAccountInfo) {
+                    onBulkDelete([deletingAccountInfo.id]);
+                  }
+                  setDeletingAccountInfo(null);
+                }} 
+                className="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-sm font-bold transition-all shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-sm"
+              >
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedUsers.length > 0 && (
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
           <div className="bg-neutral-900 text-white rounded-md shadow-2xl px-6 py-4 flex items-center space-x-6 animate-in slide-in-from-bottom duration-200">
@@ -939,6 +1281,54 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
             </div>
             <button onClick={() => setSelectedUsers([])} className="ml-2 text-white/60 hover:text-white transition-colors">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {toast && toast.show && (
+        <div className="fixed bottom-8 right-8 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={`p-4 rounded-xl border shadow-xl flex items-start gap-3.5 max-w-sm ${
+            toast.variant === 'success' 
+              ? 'bg-emerald-50 border-emerald-100 text-emerald-900 shadow-emerald-100/50' 
+              : toast.variant === 'error'
+              ? 'bg-rose-50 border-rose-100 text-rose-900 shadow-rose-100/50'
+              : 'bg-amber-50 border-amber-100 text-amber-900 shadow-amber-100/50'
+          }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              toast.variant === 'success' 
+                ? 'bg-emerald-500 text-white' 
+                : toast.variant === 'error'
+                ? 'bg-rose-500 text-white'
+                : 'bg-amber-500 text-white'
+            }`}>
+              {toast.variant === 'success' && (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {toast.variant === 'error' && (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              {toast.variant === 'warning' && (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              )}
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-black uppercase tracking-wider">{toast.title}</h4>
+              <p className="text-xs font-medium opacity-90 leading-tight">{toast.message}</p>
+            </div>
+            <button 
+              onClick={() => setToast(null)}
+              className="text-neutral-400 hover:text-neutral-900 shrink-0 ml-auto"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         </div>

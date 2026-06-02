@@ -22,6 +22,23 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error(`Error in ${this.props.name}:`, error, errorInfo);
+    
+    const errorStr = String(error?.message || error).toLowerCase();
+    const isChunkLoadFailed = errorStr.includes('failed to fetch dynamically imported module') || 
+                              errorStr.includes('loading chunk') ||
+                              errorStr.includes('dynamically imported');
+
+    if (isChunkLoadFailed) {
+      const now = Date.now();
+      const lastReloadRaw = sessionStorage.getItem('artisflow-chunk-reload-timestamp');
+      const lastReload = lastReloadRaw ? Number(lastReloadRaw) : 0;
+      
+      if (now - lastReload > 15000) {
+        sessionStorage.setItem('artisflow-chunk-reload-timestamp', String(now));
+        console.warn('Resilient reload: Chunk fetch failure detected. Refreshing app bundle...');
+        window.location.reload();
+      }
+    }
   }
 
   render() {

@@ -864,28 +864,39 @@ const Dashboard: React.FC<DashboardProps> = ({ artworks, sales, events, isLoadin
       </div>
 
       {activeStat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-md w-full max-w-3xl max-h-[85vh] shadow-2xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 md:p-8">
+          <div className="bg-white rounded-md w-full max-w-3xl max-h-[80vh] shadow-2xl overflow-hidden flex flex-col relative my-auto">
+            <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b border-neutral-100 flex items-center justify-between shrink-0">
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] leading-none mb-1">
                   Stat Details
                 </p>
-                <h3 className="text-lg font-bold text-neutral-900">
+                <h3 className="text-lg font-bold text-neutral-900 leading-none">
                   {activeStat === 'inventory' && 'Total Inventory'}
                   {activeStat === 'sold' && 'Total Sold'}
                   {activeStat === 'reserved' && 'Total Reserved'}
                   {activeStat === 'revenue' && 'Total Revenue'}
                 </h3>
               </div>
-              <div className="flex items-center gap-2">
-                {(activeStat === 'revenue' || activeStat === 'sold') && (
+              <div className="flex items-center gap-3 shrink-0">
+                {activeStat === 'revenue' && (
                   <button
                     onClick={() => {
                       onNavigateFromStat?.('sales');
                       setActiveStat(null);
                     }}
-                    className="px-4 py-2 rounded-md text-xs font-bold text-neutral-700 bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-all transform hover:-translate-y-0.5"
+                    className="px-4 py-2 rounded-md text-xs font-bold text-neutral-700 bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-all cursor-pointer"
+                  >
+                    Open Sales View
+                  </button>
+                )}
+                {activeStat === 'sold' && (
+                  <button
+                    onClick={() => {
+                      onNavigateFromStat?.('sales');
+                      setActiveStat(null);
+                    }}
+                    className="px-4 py-2 rounded-md text-xs font-bold text-neutral-700 bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-all cursor-pointer"
                   >
                     Open Sales View
                   </button>
@@ -896,7 +907,7 @@ const Dashboard: React.FC<DashboardProps> = ({ artworks, sales, events, isLoadin
                       onNavigateFromStat?.('reservations');
                       setActiveStat(null);
                     }}
-                    className="px-4 py-2 rounded-md text-xs font-bold text-neutral-700 bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-all transform hover:-translate-y-0.5"
+                    className="px-4 py-2 rounded-md text-xs font-bold text-neutral-700 bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-all cursor-pointer"
                   >
                     Open Reservation View
                   </button>
@@ -907,14 +918,15 @@ const Dashboard: React.FC<DashboardProps> = ({ artworks, sales, events, isLoadin
                       onNavigateFromStat?.('operations');
                       setActiveStat(null);
                     }}
-                    className="px-4 py-2 rounded-md text-xs font-bold text-neutral-700 bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-all transform hover:-translate-y-0.5"
+                    className="px-4 py-2 rounded-md text-xs font-bold text-neutral-700 bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-all cursor-pointer"
                   >
                     Open Gallery Operations
                   </button>
                 )}
                 <button
                   onClick={() => setActiveStat(null)}
-                  className="p-2 rounded-full bg-neutral-50 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+                  className="p-2 rounded-full bg-neutral-50 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors cursor-pointer border border-neutral-200 flex items-center justify-center w-8 h-8"
+                  aria-label="Close modal"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

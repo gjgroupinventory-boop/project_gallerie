@@ -486,9 +486,7 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
         </button>
       </div>
 
-      {/* Grid */}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {/* Grid */}      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {filteredRecords.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-24 text-neutral-400 bg-white rounded-3xl border border-dashed border-neutral-200">
             <Package size={48} className="mb-4 opacity-20" />
@@ -507,15 +505,15 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
               <div
                 key={record.id}
                 onClick={() => handleSelectRecord(record)}
-                className="group bg-white rounded-2xl border border-neutral-200 overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col h-full hover:-translate-y-1 relative"
+                className="group bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col h-full hover:-translate-y-0.5 relative"
               >
                 <div className="aspect-[4/3] overflow-hidden relative">
-                  <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
                     <div
                       onClick={(e) => toggleSelection(record.id, e)}
                     >
-                      <div className={`w-6 h-6 rounded-lg border-2 transition-all flex items-center justify-center shadow-sm ${selectedIds.has(record.id) ? 'bg-red-600 border-red-600' : 'bg-white/90 border-neutral-200 hover:border-red-400'}`}>
-                        {selectedIds.has(record.id) && <Check size={14} className="text-white" />}
+                      <div className={`w-5 h-5 rounded border transition-all flex items-center justify-center shadow-sm ${selectedIds.has(record.id) ? 'bg-red-600 border-red-600' : 'bg-white/90 border-neutral-200 hover:border-red-400'}`}>
+                        {selectedIds.has(record.id) && <Check size={10} className="text-white" />}
                       </div>
                     </div>
                     {onBulkDeleteReturnRecords && (
@@ -530,9 +528,9 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
                             'Yes, Delete'
                           );
                         }}
-                        className="w-6 h-6 flex items-center justify-center bg-white/90 hover:bg-red-50 text-neutral-400 hover:text-red-600 rounded-lg border border-neutral-200 shadow-sm transition-colors backdrop-blur-sm"
+                        className="w-5 h-5 flex items-center justify-center bg-white/90 hover:bg-red-55 text-neutral-400 hover:text-red-600 rounded border border-neutral-200 shadow-sm transition-colors backdrop-blur-sm"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={10} />
                       </button>
                     )}
                   </div>
@@ -544,39 +542,39 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-300">
-                      <Package size={32} />
+                      <Package size={24} />
                     </div>
                   )}
-                  <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm backdrop-blur-md ${record.returnType === 'For Retouch'
-                      ? 'bg-orange-100 text-orange-800 border-orange-200'
+                  <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border shadow-sm backdrop-blur-md ${record.returnType === 'For Retouch'
+                      ? 'bg-orange-100 text-orange-850 border-orange-200'
                       : 'bg-neutral-900 text-white border-neutral-900'
                       }`}>
-                      {record.returnType === 'For Retouch' ? 'FOR RETOUCH' : 'RETURNED'}
+                      {record.returnType === 'For Retouch' ? 'RETOUCH' : 'RETURNED'}
                     </span>
                   </div>
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-neutral-900/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <p className="text-white text-xs font-medium flex items-center gap-1">
-                      <MapPin size={12} />
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-neutral-900/80 to-transparent p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <p className="text-white text-[10px] font-medium flex items-center gap-1">
+                      <MapPin size={10} />
                       {record.artworkSnapshot.currentBranch}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-5 flex-1 flex flex-col">
-                  <div className="mb-3 space-y-1">
-                    <span className="text-[10px] font-bold text-neutral-400 tracking-wider uppercase">{record.artworkSnapshot.code}</span>
-                    <h4 className="text-lg font-bold text-neutral-900 leading-tight line-clamp-1 group-hover:text-neutral-600 transition-colors">{record.artworkSnapshot.title}</h4>
-                    <p className="text-sm text-neutral-500 font-medium">by {record.artworkSnapshot.artist}</p>
+                <div className="p-3 flex-1 flex flex-col justify-between">
+                  <div className="mb-2 space-y-0.5">
+                    <span className="text-[9px] font-black text-neutral-400 tracking-wider uppercase">{record.artworkSnapshot.code}</span>
+                    <h4 className="text-xs font-bold text-neutral-900 leading-snug line-clamp-1 group-hover:text-neutral-600 transition-colors" title={record.artworkSnapshot.title}>{record.artworkSnapshot.title}</h4>
+                    <p className="text-[10px] text-neutral-500 font-medium truncate">by {record.artworkSnapshot.artist}</p>
                   </div>
 
-                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-neutral-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-neutral-500 font-medium px-2 py-1 bg-neutral-50 rounded-md">
+                  <div className="mt-auto pt-2.5 flex items-center justify-between border-t border-neutral-100">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-wider px-1.5 py-0.5 bg-neutral-50 rounded border border-neutral-100 truncate">
                         {record.artworkSnapshot.medium}
                       </span>
                     </div>
-                    <p className="text-base font-bold text-neutral-900">₱{record.artworkSnapshot.price.toLocaleString()}</p>
+                    <p className="text-xs font-black text-neutral-900 shrink-0">₱{record.artworkSnapshot.price.toLocaleString()}</p>
                   </div>
                 </div>
               </div>

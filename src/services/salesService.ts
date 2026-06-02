@@ -42,7 +42,9 @@ export const buildBulkSale = (
   totalDownpayment?: number,
   agentId?: string,
   perArtworkDownpayments?: Record<string, number>,
-  isDownpayment?: boolean
+  isDownpayment?: boolean,
+  discountPercentage?: Record<string, number> | number,
+  remarks?: string
 ): { updatedArtworks: Artwork[]; newSales: SaleRecord[] } => {
   const now = new Date().toISOString();
   const normalizeAttachmentList = (value?: string | string[]) =>
@@ -76,6 +78,17 @@ export const buildBulkSale = (
   const newSales: SaleRecord[] = ids.map((id, index) => {
     const art = artworkMap.get(String(id));
 
+    // Get discount percentage for this artwork specifically
+    const itemDiscountPct = typeof discountPercentage === 'object' && discountPercentage !== null
+      ? discountPercentage[id]
+      : (typeof discountPercentage === 'number' ? discountPercentage : undefined);
+
+    // Calculate discounted price for this artwork if discount percentage is provided
+    let discountedPriceForArt: number | undefined = undefined;
+    if (itemDiscountPct !== undefined && itemDiscountPct > 0 && art && art.price) {
+      discountedPriceForArt = Math.round(art.price * (1 - itemDiscountPct / 100));
+    }
+
     // Calculate proportional downpayment
     let itemDownpayment: number | undefined = undefined;
     const explicitItemDownpayment = perArtworkDownpayments?.[id];
@@ -92,8 +105,6 @@ export const buildBulkSale = (
         distributedDownpayment += itemDownpayment;
       }
     } else if (totalDownpayment !== undefined && totalPrice === 0) {
-      // Edge case: if total price is 0, split equally or assign to first? 
-      // Assuming price > 0 for sales usually. If 0, downpayment is likely 0.
       itemDownpayment = 0;
     }
 
@@ -115,8 +126,11 @@ export const buildBulkSale = (
       rsaUrl: normalizedRsaUrls,
       orCrUrl: normalizedOrCrUrls,
       downpayment: itemDownpayment,
-      isDownpayment: isDownpayment && (itemDownpayment && art && art.price ? itemDownpayment < art.price : true),
+      isDownpayment: isDownpayment && (itemDownpayment && art && art.price ? itemDownpayment < (discountedPriceForArt || art.price) : true),
       downpaymentRecordedAt: itemDownpayment ? now : undefined,
+      remarks,
+      discountPercentage: itemDiscountPct,
+      discountedPrice: discountedPriceForArt,
       artworkSnapshot: art ? {
         title: art.title,
         artist: art.artist,
@@ -126,7 +140,9 @@ export const buildBulkSale = (
         currentBranch: art.currentBranch,
         medium: art.medium,
         dimensions: art.dimensions,
-        year: art.year
+        year: art.year,
+        discountPercentage: itemDiscountPct,
+        discountedPrice: discountedPriceForArt
       } : undefined
     };
   });

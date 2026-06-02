@@ -172,22 +172,30 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isVisible, title = 'Pro
   }
 
   return createPortal(
-    <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-md z-[500] flex items-center justify-center p-6 animate-in fade-in duration-500">
-      <div className="w-full max-w-md bg-white/95 rounded-[2.5rem] p-12 shadow-2xl border border-white/20 flex flex-col items-center gap-10 transform animate-in zoom-in-95 duration-500">
+    <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm z-[500] flex items-center justify-center p-6 animate-in fade-in duration-300">
+      <div className="w-full max-w-sm bg-white rounded-md p-10 shadow-2xl border border-neutral-200 flex flex-col items-center gap-8 transform animate-in zoom-in-95 duration-300">
         
+        {/* Brand Logo Header */}
+        <div className="text-center space-y-1">
+          <h4 className="text-xl font-serif italic text-neutral-900 tracking-tighter">Galerie Joaquin</h4>
+          <p className="text-[8px] text-neutral-500 font-black uppercase tracking-[0.3em]">Inventory System</p>
+        </div>
+
+        {/* Enterprise Shield / Sync Indicator */}
         <div className="relative">
-          <div className="w-24 h-24 rounded-[2.5rem] bg-[#0078d4]/10 flex items-center justify-center text-[#0078d4] animate-pulse">
-            <Sparkles size={40} strokeWidth={2.5} />
+          <div className="w-16 h-16 bg-neutral-900 rounded-sm flex items-center justify-center text-white shadow-lg relative overflow-hidden group">
+            <ShieldAlert size={28} className="text-white relative z-10 animate-[pulse_2s_infinite]" />
           </div>
-          <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-white shadow-xl border border-neutral-100 flex items-center justify-center text-[#107c10]">
-            <CheckCircle2 size={20} strokeWidth={3} className="animate-in zoom-in duration-700 delay-300" />
-          </div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-[#0078d4]/10 rounded-full animate-spin duration-[10s]"></div>
+          {displayPercentage === 100 && (
+            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow border border-white">
+              <CheckCircle2 size={11} strokeWidth={3} className="animate-in zoom-in duration-300" />
+            </div>
+          )}
         </div>
         
-        <div className="text-center space-y-3">
-          <h3 className="text-2xl font-black text-[#323130] tracking-tight whitespace-nowrap">{title}</h3>
-          <p className="text-[11px] font-black text-[#a19f9d] uppercase tracking-[0.25em] leading-relaxed max-w-[280px] mx-auto">
+        <div className="text-center space-y-2">
+          <h3 className="text-base font-bold text-neutral-900 tracking-tight">{title}</h3>
+          <p className="text-[9px] font-black text-neutral-400 uppercase tracking-[0.25em] leading-relaxed max-w-[260px] mx-auto">
             {message || (displayPercentage <= 30 ? "Initializing workspace sequence..." :
              displayPercentage <= 60 ? "Synchronizing batch assets..." :
              displayPercentage <= 90 ? "Finalizing transaction manifests..." :
@@ -195,24 +203,25 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isVisible, title = 'Pro
           </p>
         </div>
 
-        <div className="w-full space-y-5">
-          <div className="h-3 w-full bg-[#f3f2f1] rounded-full overflow-hidden border border-[#edebe9] p-0.5">
+        {/* Sharp Progress Bar */}
+        <div className="w-full space-y-4">
+          <div className="h-1.5 w-full bg-neutral-100 rounded-none overflow-hidden border border-neutral-200 p-0">
             <div 
-              className="h-full bg-gradient-to-r from-[#0078d4] to-[#2b88d8] transition-all duration-700 ease-out rounded-full shadow-[0_0_15px_rgba(0,120,212,0.4)] relative"
+              className="h-full bg-neutral-900 transition-all duration-700 ease-out rounded-none relative"
               style={{ width: `${displayPercentage}%` }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite]" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_infinite]" />
             </div>
           </div>
           
-          <div className="flex justify-between items-center px-2">
-             <div className="flex items-center gap-2">
-                <Loader2 size={12} className="text-[#0078d4] animate-spin" />
-                <span className="text-[11px] font-black text-[#0078d4] tracking-[0.15em]">{displayPercentage}% {displayPercentage === 100 ? 'COMPLETE' : 'SYNCING'}</span>
+          <div className="flex justify-between items-center px-1">
+             <div className="flex items-center gap-1.5">
+                <Loader2 size={11} className="text-neutral-900 animate-spin" />
+                <span className="text-[9px] font-black text-neutral-900 tracking-[0.2em]">{displayPercentage}% {displayPercentage === 100 ? 'COMPLETE' : 'SYNCHRONIZING'}</span>
              </div>
-             <div className="flex gap-1.5">
+             <div className="flex gap-1">
                {[30, 60, 90].map(step => (
-                 <div key={step} className={`w-2 h-2 rounded-full transition-all duration-500 ${displayPercentage >= step ? 'bg-[#0078d4] shadow-[0_0_8px_rgba(0,120,212,0.3)]' : 'bg-[#edebe9]'}`} />
+                 <div key={step} className={`w-1.5 h-1.5 rounded-none transition-all duration-500 ${displayPercentage >= step ? 'bg-neutral-900' : 'bg-neutral-200'}`} />
                ))}
              </div>
           </div>

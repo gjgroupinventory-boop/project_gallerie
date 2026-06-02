@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserRole, AppNotification, Artwork, UserPermissions } from '../types';
-import { ArrowLeft, Bell, Check, Clock, Info, LogOut, User as UserIcon, Monitor, MessageSquare, Menu } from 'lucide-react';
+import { ArrowLeft, Bell, Check, Clock, Info, LogOut, User as UserIcon, Monitor, MessageSquare, Menu, AlertTriangle } from 'lucide-react';
 import NotificationsModal from './NotificationsModal';
 import NotificationDetailModal from './NotificationDetailModal';
 
@@ -24,6 +24,58 @@ interface HeaderProps {
   permissions?: UserPermissions;
   onToggleMobileMenu?: () => void;
 }
+
+const playNotificationSound = (isImportant: boolean) => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    
+    if (isImportant) {
+      // Premium urgent/important chime: high double-chime (ding-ding!)
+      // First high ding
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, ctx.currentTime); // A5
+      gain1.gain.setValueAtTime(0, ctx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.04);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start();
+      osc1.stop(ctx.currentTime + 0.4);
+
+      // Second ding (slightly higher, delayed)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.12); // C#6
+      gain2.gain.setValueAtTime(0, ctx.currentTime + 0.12);
+      gain2.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.16);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.65);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.12);
+      osc2.stop(ctx.currentTime + 0.65);
+    } else {
+      // Gentle notification sound
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    }
+  } catch (e) {
+    console.warn('Audio Context block / play failed:', e);
+  }
+};
 
 const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unreadChatCount = 0, onMarkRead, onLogout, onViewProfile, userName, onBackToDashboard, historyStack = [], onViewChat, artworks, onViewArtwork, onDeleteNotifications, zoomLevel, setZoomLevel, permissions, onToggleMobileMenu }) => {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -50,6 +102,17 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
       if (newNotif && !newNotif.isRead && isActuallyNew) {
         setActiveToast(newNotif);
         setIsExiting(false);
+
+        // Detect if it is an important administrative request
+        const lowerTitle = newNotif.title.toLowerCase();
+        const lowerMsg = newNotif.message.toLowerCase();
+        const isRequest = newNotif.isImportant || 
+                          lowerTitle.includes('request') || lowerMsg.includes('request') ||
+                          lowerTitle.includes('awaiting') || lowerTitle.includes('pending') ||
+                          lowerTitle.includes('declared') || lowerTitle.includes('action required');
+
+        // Play the premium synthesized sound cue!
+        playNotificationSound(isRequest);
 
         const exitTimer = setTimeout(() => {
           setIsExiting(true);
@@ -341,48 +404,68 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
         />
       )}
 
-      {activeToast && (
-        <div
-          onClick={() => {
-            setSelectedNotification(activeToast);
-            dismissToast();
-          }}
-          className={`fixed top-20 right-8 z-[9999] max-w-sm w-full bg-white border border-neutral-200 shadow-2xl rounded-2xl p-4 flex items-start space-x-3 cursor-pointer select-none hover:shadow-neutral-200/50 hover:border-neutral-300 transform hover:-translate-y-0.5 transition-all duration-300 ${
-            isExiting ? 'toast-exit' : 'toast-enter'
-          }`}
-        >
-          <div className={`mt-0.5 p-2 rounded-xl ${
-            activeToast.type === 'inventory' ? 'bg-neutral-100 text-neutral-800' :
-            activeToast.type === 'sales' ? 'bg-neutral-100 text-neutral-800' : 
-            'bg-neutral-50 text-neutral-600'
-          }`}>
-            <Bell size={16} className="animate-bounce" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">New Notification</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  dismissToast();
-                }}
-                className="text-neutral-400 hover:text-neutral-600 p-1 rounded-full hover:bg-neutral-100 transition-colors"
-                aria-label="Dismiss toast"
-              >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      {activeToast && (() => {
+        const lowerTitle = activeToast.title.toLowerCase();
+        const lowerMsg = activeToast.message.toLowerCase();
+        const isRequest = activeToast.isImportant || 
+                          lowerTitle.includes('request') || lowerMsg.includes('request') ||
+                          lowerTitle.includes('awaiting') || lowerTitle.includes('pending') ||
+                          lowerTitle.includes('declared') || lowerTitle.includes('action required');
+        return (
+          <div
+            onClick={() => {
+              setSelectedNotification(activeToast);
+              dismissToast();
+            }}
+            className={`fixed top-20 right-8 z-[9999] max-w-sm w-full border shadow-2xl rounded-2xl p-4 flex items-start space-x-3 cursor-pointer select-none hover:shadow-neutral-200/50 hover:border-neutral-300 transform hover:-translate-y-0.5 transition-all duration-300 ${
+              isExiting ? 'toast-exit' : 'toast-enter'
+            } ${
+              isRequest 
+                ? 'bg-amber-50/95 border-amber-400 shadow-amber-500/20' 
+                : 'bg-white border-neutral-200'
+            }`}
+          >
+            <div className={`mt-0.5 p-2 rounded-xl ${
+              isRequest
+                ? 'bg-amber-500 text-white animate-pulse'
+                : activeToast.type === 'inventory' ? 'bg-neutral-100 text-neutral-800' :
+                activeToast.type === 'sales' ? 'bg-neutral-100 text-neutral-800' : 
+                'bg-neutral-50 text-neutral-600'
+            }`}>
+              {isRequest ? (
+                <AlertTriangle size={16} />
+              ) : (
+                <Bell size={16} className="animate-bounce" />
+              )}
             </div>
-            <p className="text-xs font-bold text-neutral-900 mt-1 leading-tight">{activeToast.title}</p>
-            <p className="text-[11px] text-neutral-500 mt-1 line-clamp-2 leading-relaxed">{activeToast.message}</p>
-            <div className="flex items-center space-x-1 mt-2 text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
-              <Clock size={10} />
-              <span>Just Now</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-black uppercase tracking-widest ${isRequest ? 'text-amber-700 animate-pulse' : 'text-neutral-400'}`}>
+                  {isRequest ? '⚠️ Action Required (Request)' : 'New Notification'}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissToast();
+                  }}
+                  className="text-neutral-400 hover:text-neutral-600 p-1 rounded-full hover:bg-neutral-100 transition-colors"
+                  aria-label="Dismiss toast"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-xs font-bold text-neutral-900 mt-1 leading-tight">{activeToast.title}</p>
+              <p className="text-[11px] text-neutral-500 mt-1 line-clamp-2 leading-relaxed">{activeToast.message}</p>
+              <div className="flex items-center space-x-1 mt-2 text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
+                <Clock size={10} />
+                <span>Just Now</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </header>
   );
 };

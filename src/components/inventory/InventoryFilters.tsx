@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, Download, Upload, Plus } from 'lucide-react';
 import { Branch, ArtworkStatus, UserPermissions, ExhibitionEvent, ImportRecord } from '../../types';
 import { ExportDropdown } from '../ExportDropdown';
@@ -46,6 +46,11 @@ interface InventoryFiltersProps {
   typeFilter: string;
   setTypeFilter: (val: string) => void;
   events: ExhibitionEvent[];
+  minPrice: string;
+  setMinPrice: (val: string) => void;
+  maxPrice: string;
+  setMaxPrice: (val: string) => void;
+  maxPossiblePrice: number;
 }
 
 export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
@@ -90,8 +95,54 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
   setClientFilter,
   typeFilter,
   setTypeFilter,
-  events
+  events,
+  minPrice,
+  setMinPrice,
+  maxPrice,
+  setMaxPrice,
+  maxPossiblePrice
 }) => {
+  const [showPricePopover, setShowPricePopover] = useState(false);
+  const [tempMinPrice, setTempMinPrice] = useState(0);
+  const [tempMaxPrice, setTempMaxPrice] = useState(maxPossiblePrice);
+  const priceRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (minPrice === '') {
+      setTempMinPrice(0);
+    } else {
+      setTempMinPrice(parseFloat(minPrice) || 0);
+    }
+  }, [minPrice]);
+
+  useEffect(() => {
+    if (maxPrice === '') {
+      setTempMaxPrice(maxPossiblePrice);
+    } else {
+      setTempMaxPrice(parseFloat(maxPrice) || maxPossiblePrice);
+    }
+  }, [maxPrice, maxPossiblePrice]);
+
+  useEffect(() => {
+    const clickOutside = (e: MouseEvent) => {
+      if (priceRef.current && !priceRef.current.contains(e.target as Node)) {
+        setShowPricePopover(false);
+      }
+    };
+    document.addEventListener('mousedown', clickOutside);
+    return () => document.removeEventListener('mousedown', clickOutside);
+  }, []);
+
+  const formatPriceLabel = (val: number) => {
+    if (val >= 1000000) {
+      return `${(val / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+    }
+    if (val >= 1000) {
+      return `${(val / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+    }
+    return String(val);
+  };
+
   const controlClass = "h-9 bg-white border-0 px-3 text-[11px] font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer uppercase tracking-[0.04em]";
   const groupClass = "flex min-w-0 items-center overflow-hidden rounded-sm border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]";
   const separatorClass = "h-5 w-px bg-slate-200";
@@ -269,15 +320,160 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
             </select>
           </div>
 
-          <div className={groupClass}>
-            <select
-              value={exhibitFilter}
-              onChange={(e) => setExhibitFilter(e.target.value)}
-              className={`${controlClass} min-w-[200px] text-blue-600`}
+          {permissions?.canManageEvents && (
+            <div className={groupClass}>
+              <select
+                value={exhibitFilter}
+                onChange={(e) => setExhibitFilter(e.target.value)}
+                className={`${controlClass} min-w-[200px] text-blue-600`}
+              >
+                <option value="All">All Exhibits & Events</option>
+                {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div className="relative" ref={priceRef}>
+            <style dangerouslySetInnerHTML={{__html: `
+              .dual-range-slider {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                background: transparent;
+                pointer-events: none;
+                position: absolute;
+                height: 6px;
+                outline: none;
+              }
+              .dual-range-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                height: 16px;
+                width: 16px;
+                border-radius: 50%;
+                background: #2563eb;
+                border: 2px solid #ffffff;
+                box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
+                cursor: pointer;
+                pointer-events: auto;
+                transition: transform 0.1s ease, background-color 0.15s ease;
+              }
+              .dual-range-slider::-webkit-slider-thumb:hover {
+                transform: scale(1.25);
+                background-color: #1d4ed8;
+              }
+              .dual-range-slider::-moz-range-thumb {
+                height: 14px;
+                width: 14px;
+                border-radius: 50%;
+                background: #2563eb;
+                border: 2px solid #ffffff;
+                box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
+                cursor: pointer;
+                pointer-events: auto;
+                transition: transform 0.1s ease, background-color 0.15s ease;
+              }
+              .dual-range-slider::-moz-range-thumb:hover {
+                transform: scale(1.25);
+                background-color: #1d4ed8;
+              }
+            `}} />
+            <button
+              type="button"
+              onClick={() => setShowPricePopover(!showPricePopover)}
+              className="flex h-9 items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition-colors hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
             >
-              <option value="All">All Exhibits & Events</option>
-              {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-            </select>
+              <span>
+                Price: {minPrice === '' && maxPrice === '' 
+                  ? 'All Prices' 
+                  : `₱${formatPriceLabel(parseFloat(minPrice || '0'))} - ₱${formatPriceLabel(parseFloat(maxPrice || String(maxPossiblePrice)))}`}
+              </span>
+              <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showPricePopover && (
+              <div className="absolute left-0 lg:right-auto mt-2 w-[320px] bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex justify-between items-center mb-6">
+                  <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none">Price Range Filter</h4>
+                  <span className="text-xs font-black text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md leading-none">
+                    ₱{formatPriceLabel(tempMinPrice)} - ₱{formatPriceLabel(tempMaxPrice)}
+                  </span>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Slider Track Area */}
+                  <div className="relative h-6 flex items-center">
+                    <div 
+                      className="absolute left-0 right-0 h-1.5 rounded-lg"
+                      style={{
+                        background: `linear-gradient(to right, #e2e8f0 0%, #e2e8f0 ${(tempMinPrice / maxPossiblePrice) * 100}%, #2563eb ${(tempMinPrice / maxPossiblePrice) * 100}%, #2563eb ${(tempMaxPrice / maxPossiblePrice) * 100}%, #e2e8f0 ${(tempMaxPrice / maxPossiblePrice) * 100}%, #e2e8f0 100%)`
+                      }}
+                    />
+                    
+                    <input
+                      type="range"
+                      min="0"
+                      max={maxPossiblePrice}
+                      step="5000"
+                      value={tempMinPrice}
+                      onChange={(e) => {
+                        const val = Math.min(parseFloat(e.target.value), tempMaxPrice - 5000);
+                        setTempMinPrice(val);
+                      }}
+                      className="dual-range-slider z-10"
+                    />
+                    
+                    <input
+                      type="range"
+                      min="0"
+                      max={maxPossiblePrice}
+                      step="5000"
+                      value={tempMaxPrice}
+                      onChange={(e) => {
+                        const val = Math.max(parseFloat(e.target.value), tempMinPrice + 5000);
+                        setTempMaxPrice(val);
+                      }}
+                      className="dual-range-slider z-20"
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                    <span>₱0</span>
+                    <span>₱{formatPriceLabel(maxPossiblePrice)}</span>
+                  </div>
+
+                  {/* Buttons matching design palette */}
+                  <div className="flex justify-between items-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMinPrice('');
+                        setMaxPrice('');
+                        setTempMinPrice(0);
+                        setTempMaxPrice(maxPossiblePrice);
+                        setShowPricePopover(false);
+                      }}
+                      className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMinPrice(String(tempMinPrice));
+                        setMaxPrice(String(tempMaxPrice));
+                        setShowPricePopover(false);
+                      }}
+                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-blue-500/10 hover:shadow-lg active:scale-95"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex min-w-[220px] items-center overflow-hidden rounded-sm border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
@@ -292,45 +488,7 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
         </div>
       </div>
 
-      {importLogs && importLogs.length > 0 && (
-        <div className="flex flex-col gap-2 border-b border-slate-200 px-1 pb-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider select-none">
-            <span className="bg-slate-100 px-2 py-0.5 rounded-sm">Quick Preview</span>
-            <span>Recent Imports</span>
-          </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 custom-scrollbar">
-            <button
-              onClick={() => setSelectedImportLogId(null)}
-              className={`h-8 px-4 text-[11px] font-black uppercase tracking-[0.06em] whitespace-nowrap rounded-sm border transition-all flex items-center gap-1.5 ${!selectedImportLogId
-                  ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
-                  : 'bg-white text-slate-600 hover:text-neutral-900 hover:bg-slate-50 border-slate-200'
-                }`}
-            >
-              All Artworks
-            </button>
-            {importLogs.filter(log => log.status !== 'Failed').slice(0, 5).map(log => {
-              const count = (log.importedIds?.length || 0) + (log.updatedIds?.length || 0);
-              const isSelected = selectedImportLogId === log.id;
-              return (
-                <button
-                  key={log.id}
-                  onClick={() => setSelectedImportLogId(log.id)}
-                  className={`h-8 px-4 text-[11px] font-black uppercase tracking-[0.06em] whitespace-nowrap rounded-sm border transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md ${isSelected
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-slate-600 hover:text-blue-600 hover:bg-blue-50/40 border-slate-200'
-                    }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-500 animate-pulse'}`} />
-                  <span>{log.filename}</span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm ${isSelected ? 'bg-blue-500 text-blue-100' : 'bg-slate-100 text-slate-500'}`}>
-                    {count} items
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

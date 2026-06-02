@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Artwork,
   UserRole,
-  ArtworkStatus
+  ArtworkStatus,
+  UserPermissions
 } from './types';
 import { supabase } from './supabase';
 import { getDefaultPermissions, IS_DEMO_MODE } from './constants';
@@ -47,6 +48,7 @@ import { useAccountOperations } from './hooks/useAccountOperations';
 import { useBranchOperations } from './hooks/useBranchOperations';
 import { useChatOperations } from './hooks/useChatOperations';
 import InitialSyncLoadingScreen from './components/InitialSyncLoadingScreen';
+import TabLoadingScreen from './components/TabLoadingScreen';
 
 
 // Error Boundary is now in components/ErrorBoundary.tsx
@@ -120,20 +122,20 @@ const App: React.FC = () => {
 
   const {
     handleCreateTransferRequest, handleAcceptTransfer, handleDeclineTransfer,
-    handleHoldTransfer, handleDeleteTransfer
+    handleHoldTransfer, handleDeleteTransfer, handleBulkDeleteTransfers
   } = useTransferOperations();
   const { handleAddEvent, handleUpdateEvent, handleDeleteEvent } = useEventOperations();
-  const { handleAddAccount, handleUpdateAccountStatus, handleUpdateAccount, handleBulkDeleteAccounts, handleBulkUpdateAccountStatus } = useAccountOperations();
+  const { handleAddAccount, handleUpdateAccountStatus, handleUpdateAccount, handleBulkDeleteAccounts, handleBulkUpdateAccountStatus, handleBulkUpdatePermissions } = useAccountOperations();
   const { handleAddBranch, handleUpdateBranch, handleDeleteBranch, handleUpdateBranchAddress } = useBranchOperations();
     const { handleSendMessage, handleStartConversation, handleMarkRead, handleDeleteConversation } = useChatOperations();
   
 
 
-  // History Stack Effect
+  // Sync currentUser with updates from accounts list
   useEffect(() => {
     if (currentUser) {
       const updatedUser = accounts.find(a => a.id === currentUser.id);
-      if (updatedUser && JSON.stringify(updatedUser) !== JSON.stringify(currentUser)) {
+      if (updatedUser && updatedUser.permissions && JSON.stringify(updatedUser) !== JSON.stringify(currentUser)) {
         setCurrentUser(updatedUser);
       }
     }
@@ -212,25 +214,17 @@ const App: React.FC = () => {
     if (!currentUser) return getDefaultPermissions(UserRole.BRANCH_USER);
     // Merge stored permissions with defaults to ensure new permission keys are present
     const defaults = getDefaultPermissions(currentUser.role);
-    const stored = currentUser.permissions || {};
+    const stored = (currentUser.permissions || {}) as Partial<UserPermissions>;
 
     const merged = { ...defaults, ...stored };
 
     // Ensure 'artwork-transfer' and 'chat' are available if role permits it by default
     // This fixes the issue for existing users who have stored permissions without these new tabs
-    if (merged.accessibleTabs && defaults.accessibleTabs) {
+    if (!stored.accessibleTabs && merged.accessibleTabs && defaults.accessibleTabs) {
+      // Only backfill recently introduced tabs so that custom unchecking of core tabs (like accounts/operations) is respected
       const standardTabs = [
-        'finance', 
-        'approvals', 
-        'deliveries', 
-        'delivery-requests', 
-        'requests', 
         'chat', 
-        'artwork-transfer', 
-        'analytics', 
-        'snapshots', 
-        'audit-logs', 
-        'import-history'
+        'artwork-transfer'
       ];
       
       standardTabs.forEach(tab => {
@@ -276,10 +270,10 @@ const App: React.FC = () => {
   const canPerform = {
     add: currentPermissions.canAddArtwork,
     edit: currentPermissions.canEditArtwork,
-    transfer: currentPermissions.canEditArtwork,
+    transfer: currentPermissions.canTransferArtwork,
     sell: currentPermissions.canSellArtwork,
     reserve: currentPermissions.canReserveArtwork,
-    deliver: currentPermissions.canSellArtwork,
+    deliver: currentPermissions.canApproveLogistics,
     manageUsers: currentPermissions.canManageAccounts,
     manageEvents: currentPermissions.canManageEvents,
   };
@@ -430,10 +424,26 @@ const App: React.FC = () => {
   // Router Content
   const renderContent = () => {
     try {
+      if (activeTab !== 'master-view' && activeTab !== 'events' && currentPermissions.accessibleTabs && !currentPermissions.accessibleTabs.includes(activeTab)) {
+        return (
+          <ErrorBoundary name="Dashboard-Fallback-General">
+            <Dashboard
+              artworks={artworks}
+              sales={sales}
+              events={events}
+              accounts={validAccounts}
+              onSelectArt={handleViewArtwork}
+              onManageEvents={() => setActiveTab('operations')}
+              onNavigateFromStat={handleNavigateFromStat}
+            />
+          </ErrorBoundary>
+        );
+      }
+
       switch (activeTab) {
         case 'chat':
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <ChatPage
                 conversations={conversations}
                 messages={messages}
@@ -455,7 +465,7 @@ const App: React.FC = () => {
         case 'dashboard':
           return (
             <ErrorBoundary name="Dashboard">
-              <Suspense fallback={<div>Loading...</div>}>
+              <Suspense fallback={<TabLoadingScreen />}>
                 <Dashboard
                   artworks={artworks}
                   sales={sales}
@@ -474,7 +484,7 @@ const App: React.FC = () => {
           );
         case 'analytics':
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <AnalyticsPage
                 artworks={artworks}
                 sales={sales}
@@ -495,7 +505,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <FinancePage />
             </Suspense>
           );
@@ -507,7 +517,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <ApprovalsPage
                 sales={sales}
                 artworks={artworks}
@@ -529,7 +539,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <DeliveriesPage
                 sales={sales}
                 artworks={artworks}
@@ -568,7 +578,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <DeliveryRequestsPage
                 sales={sales}
                 artworks={artworks}
@@ -587,19 +597,20 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <AgentRequestsPage
                 sales={sales}
                 artworks={allArtworksIncludingDeleted}
                 userPermissions={currentPermissions}
                 currentUser={currentUser}
                 onViewArtwork={handleViewArtwork}
+                transferRequests={transferRequests}
               />
             </Suspense>
           );
         case 'sales-history':
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <SalesRecordPage
                 sales={sales}
                 artworks={allArtworksIncludingDeleted}
@@ -635,7 +646,7 @@ const App: React.FC = () => {
             );
           }
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <GalleryManagementPage
                 events={events}
                 artworks={artworks}
@@ -706,7 +717,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <ImportHistoryPage
                 logs={importLogs}
                 artworks={artworks}
@@ -745,7 +756,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <TimeMachinePage
                 artworks={allArtworksIncludingDeleted}
                 sales={sales}
@@ -762,7 +773,7 @@ const App: React.FC = () => {
           );
         case 'artwork-transfer':
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <ArtworkTransfer
                 requests={transferRequests}
                 artworks={artworks}
@@ -771,6 +782,7 @@ const App: React.FC = () => {
                 onDecline={handleDeclineTransfer}
                 onHold={handleHoldTransfer}
                 onDelete={handleDeleteTransfer}
+                onBulkDelete={handleBulkDeleteTransfers}
                 branches={branches}
                 onViewArtwork={handleViewArtwork}
                 userPermissions={currentPermissions}
@@ -795,7 +807,7 @@ const App: React.FC = () => {
           }
 
           return selectedArt ? (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <MasterView
                 artwork={selectedArt}
                 branches={branches}
@@ -886,7 +898,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <AccountManagement
                 accounts={validAccounts}
                 branches={branches}
@@ -895,12 +907,13 @@ const App: React.FC = () => {
                 onUpdateAccount={handleUpdateAccount}
                 onBulkDelete={handleBulkDeleteAccounts}
                 onBulkUpdateStatus={handleBulkUpdateAccountStatus}
+                onBulkUpdatePermissions={handleBulkUpdatePermissions}
               />
             </Suspense>
           );
         case 'audit-logs':
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <AuditLogsPage logs={logs} artworks={artworks} onViewArtwork={handleViewArtwork} onDeleteLogs={handleDeleteLogs} permissions={currentUser?.permissions} />
             </Suspense>
           );
@@ -923,7 +936,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <PaymentApprovalPage
                 sales={sales}
                 artworks={artworks}
@@ -952,7 +965,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
           );
           return (
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<TabLoadingScreen />}>
               <SalesApprovalPage
                 sales={sales}
                 artworks={artworks}

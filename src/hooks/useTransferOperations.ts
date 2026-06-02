@@ -45,7 +45,16 @@ export const useTransferOperations = () => {
       const artwork = artworks.find(a => String(a.id) === String(id));
       if (!artwork) return null;
 
-      if (currentUser.role !== UserRole.ADMIN && currentUser.branch !== artwork.currentBranch) {
+      const userBranch = (currentUser.branch || '').trim().toLowerCase();
+      const artBranch = (artwork.currentBranch || '').trim().toLowerCase();
+      const destBranch = (toBranch || '').trim().toLowerCase();
+      
+      const isFromMyBranch = userBranch === artBranch || artBranch.includes(userBranch) || userBranch.includes(artBranch);
+      const isToMyBranch = userBranch === destBranch || destBranch.includes(userBranch) || userBranch.includes(destBranch);
+
+      const isAuthorized = currentUser.role === UserRole.ADMIN || currentUser.permissions?.canTransferArtwork || isFromMyBranch || isToMyBranch;
+
+      if (!isAuthorized) {
         return null;
       }
 
@@ -286,7 +295,7 @@ export const useTransferOperations = () => {
 
   // 5. handleDeleteTransfer
   const handleDeleteTransfer = async (request: TransferRequest) => {
-    if (!currentUser || !window.confirm(`Delete transfer request for "${request.artworkTitle}"?`)) return;
+    if (!currentUser) return;
 
     setImportStatus({
       isVisible: true,
@@ -311,7 +320,6 @@ export const useTransferOperations = () => {
 
   const handleBulkDeleteTransfers = async (ids: string[]) => {
     if (!currentUser || ids.length === 0) return;
-    if (!window.confirm(`Permanently delete ${ids.length} transfer record(s)?`)) return;
 
     setImportStatus({
       isVisible: true,

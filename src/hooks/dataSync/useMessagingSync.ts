@@ -64,13 +64,13 @@ export const useMessagingSync = ({
       }
     };
 
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, handleNotificationRealtime);
+    const channel = supabase.channel(`artisflow-notifications-sync-${currentUser.id}`);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, handleNotificationRealtime);
     
-    subscribeGlobalSyncChannel();
+    channel.subscribe();
     return () => {
       window.clearTimeout(timer);
-      unsubscribeGlobalSyncChannel();
+      supabase.removeChannel(channel);
     };
   }, [currentUser?.id, setNotifications]);
 
@@ -112,11 +112,11 @@ export const useMessagingSync = ({
     };
 
     void syncMessaging();
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, handleConversationRealtime);
+    const channel = supabase.channel(`artisflow-conversations-sync-${currentUser.id}`);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, handleConversationRealtime);
     
-    subscribeGlobalSyncChannel();
-    return () => { unsubscribeGlobalSyncChannel(); };
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id, shouldSyncMessaging, setConversations]);
 
   useEffect(() => {
@@ -132,8 +132,8 @@ export const useMessagingSync = ({
     };
 
     void syncMessages();
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+    const channel = supabase.channel(`artisflow-messages-sync-${currentUser.id}`);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
         const newMessage = mapFromSnakeCase([payload.new])[0] as ChatMessage;
         if (payload.eventType === 'INSERT') {
           setMessages(prev => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
@@ -144,7 +144,7 @@ export const useMessagingSync = ({
         }
       });
       
-    subscribeGlobalSyncChannel();
-    return () => { unsubscribeGlobalSyncChannel(); };
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id, shouldSyncMessaging, conversations, setMessages]);
 };

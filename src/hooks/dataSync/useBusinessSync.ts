@@ -147,12 +147,12 @@ export const useBusinessSync = ({
     };
 
     void syncBusinessData();
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel
+    const channel = supabase.channel(`artisflow-business-sync-${currentUser.id}`);
+    channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, handleSalesRealtime)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, handleEventsRealtime);
       
-    subscribeGlobalSyncChannel();
-    return () => { unsubscribeGlobalSyncChannel(); };
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id, setEvents, setIsLoadingEvents, setIsLoadingSales, setSales, shouldLoadFullBusinessData]);
 };

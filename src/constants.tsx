@@ -48,7 +48,8 @@ export const APP_TABS = [
   { id: 'accounts', label: 'Branch Accounts' },
   { id: 'chat', label: 'Inbox & Messaging' },
   { id: 'approvals', label: 'Finance Approval' },
-  { id: 'requests', label: 'My Requests' }
+  { id: 'requests', label: 'My Requests' },
+  { id: 'delivery-requests', label: 'Delivery Requests (Tab)' }
 ];
 
 
@@ -56,9 +57,9 @@ export const APP_TABS = [
 export const getDefaultAccessibleTabs = (role: UserRole): string[] => {
   switch (role) {
     case UserRole.ADMIN:
-      return ['finance', 'dashboard', 'analytics', 'import-history', 'snapshots', 'operations', 'sales-history', 'deliveries', 'approvals', 'artwork-transfer', 'audit-logs', 'accounts', 'chat'];
+      return ['finance', 'dashboard', 'analytics', 'import-history', 'snapshots', 'operations', 'sales-history', 'deliveries', 'delivery-requests', 'approvals', 'artwork-transfer', 'audit-logs', 'accounts', 'chat'];
     case UserRole.INVENTORY_PERSONNEL:
-      return ['finance', 'dashboard', 'analytics', 'import-history', 'snapshots', 'operations', 'sales-history', 'deliveries', 'artwork-transfer', 'accounts', 'chat'];
+      return ['finance', 'dashboard', 'analytics', 'import-history', 'snapshots', 'operations', 'sales-history', 'deliveries', 'delivery-requests', 'artwork-transfer', 'accounts', 'chat'];
     case UserRole.BRANCH_USER:
       return ['dashboard', 'sales-history', 'deliveries', 'artwork-transfer', 'requests', 'accounts', 'chat'];
     case UserRole.EXCLUSIVE:

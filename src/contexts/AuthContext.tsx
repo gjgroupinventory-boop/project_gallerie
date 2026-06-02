@@ -18,11 +18,85 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const PROFILE_COLUMNS = 'id, name, first_name, full_name, email, role, branch, status, permissions, last_login, position';
+const PROFILE_COLUMNS = 'id, name, first_name, full_name, email, role, branch, status, permissions, last_login, position, password';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    try {
+      const persisted = sessionStorage.getItem('artisflow-session-user');
+      return persisted ? JSON.parse(persisted) : null;
+    } catch {
+      return null;
+    }
+  });
   const [justLoggedIn, setJustLoggedIn] = useState(false);
+
+  // Sync session changes to sessionStorage
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        sessionStorage.setItem('artisflow-session-user', JSON.stringify(currentUser));
+      } else {
+        sessionStorage.removeItem('artisflow-session-user');
+      }
+    } catch (e) {
+      console.error('Failed to sync user session to storage:', e);
+    }
+  }, [currentUser]);
+
+  // Keep current user's profile updated in real-time from Supabase
+  useEffect(() => {
+    if (!currentUser?.id || IS_DEMO_MODE) return;
+
+    let active = true;
+
+    const fetchAndSubscribe = async () => {
+      // 1. Fetch fresh profile data immediately on boot to sync custom permissions/role updates
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select(PROFILE_COLUMNS)
+          .eq('id', currentUser.id)
+          .maybeSingle();
+        
+        if (profile && active) {
+          const updated = normalizeAccount(mapFromSnakeCase([profile])[0] as UserAccount);
+          if (JSON.stringify(updated) !== JSON.stringify(currentUser)) {
+            setCurrentUser(updated);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching fresh profile at boot:', err);
+      }
+
+      // 2. Subscribe to realtime updates for this specific profile
+      const channel = supabase.channel(`current-user-sync-${currentUser.id}`);
+      channel
+        .on('postgres_changes', { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'profiles', 
+          filter: `id=eq.${currentUser.id}` 
+        }, (payload) => {
+          if (!active) return;
+          const updated = normalizeAccount(mapFromSnakeCase([payload.new])[0] as UserAccount);
+          setCurrentUser(updated);
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    const cleanupPromise = fetchAndSubscribe();
+    return () => {
+      active = false;
+      cleanupPromise.then(cleanup => {
+        if (cleanup) cleanup();
+      });
+    };
+  }, [currentUser?.id]);
 
   // Presence System using Supabase Realtime
   useEffect(() => {

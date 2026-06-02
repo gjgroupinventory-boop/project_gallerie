@@ -309,6 +309,7 @@ export interface AppNotification {
   agent?: string;
   userName?: string;
   items?: { id: string; title: string; code: string; imageUrl?: string; status?: 'success' | 'failed'; error?: string }[];
+  isImportant?: boolean;
 }
 
 export interface ImportFailedItem {

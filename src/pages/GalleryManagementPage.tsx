@@ -39,7 +39,20 @@ interface GalleryManagementPageProps {
   onEditArtwork?: (id: string, updates: Partial<Artwork>) => void;
   onBulkAddArtworks?: (artworks: Partial<Artwork>[], filename?: string) => void;
   onBulkUpdateArtworks?: (ids: string[], updates: Partial<Artwork>) => void;
-  onBulkSale?: (ids: string[], client: string, delivered: boolean, eventInfo?: { id: string; name: string }, attachments?: { itdrUrl?: string | string[]; rsaUrl?: string | string[]; orCrUrl?: string | string[] }, totalDownpayment?: number, clientEmail?: string, clientContact?: string, perArtworkDownpayments?: Record<string, number>) => void;
+  onBulkSale?: (
+    ids: string[],
+    client: string,
+    delivered: boolean,
+    eventInfo?: { id: string; name: string },
+    attachments?: { itdrUrl?: string | string[]; rsaUrl?: string | string[]; orCrUrl?: string | string[] },
+    totalDownpayment?: number,
+    clientEmail?: string,
+    clientContact?: string,
+    perArtworkDownpayments?: Record<string, number>,
+    installmentsEnabled?: boolean,
+    discountPercentage?: Record<string, number> | number,
+    remarks?: string
+  ) => void;
   onBulkTransferRequest?: (ids: string[], targetBranch: string, attachments?: { itdrUrl?: string | string[] }) => void;
   onBulkDeleteArtworks: (ids: string[]) => void;
   onBulkReserveArtworks: (ids: string[], details: string, expiryDate?: string, eventId?: string, eventName?: string) => void;

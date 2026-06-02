@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { mapToSnakeCase } from '../utils/supabaseUtils';
 import { generateUUID } from '../utils/idUtils';
-import { UserAccount, UserRole } from '../types';
+import { UserAccount, UserRole, UserPermissions } from '../types';
 import { IS_DEMO_MODE } from '../constants';
 import { sendStaffWelcomeEmail } from '../services/emailService';
 import { useData } from '../contexts/DataContext';
@@ -161,11 +161,30 @@ export const useAccountOperations = () => {
     }
   };
 
+  const handleBulkUpdatePermissions = async (ids: string[], permissions: UserPermissions) => {
+    setAccounts(prev => prev.map(a => ids.includes(a.id) ? { ...a, permissions } : a));
+    
+    if (IS_DEMO_MODE) {
+      pushNotification('Bulk Permissions Update', `Updated permissions for ${ids.length} accounts.`, 'system');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.from('profiles').update(mapToSnakeCase({ permissions })).in('id', ids);
+      if (error) throw error;
+      pushNotification('Bulk Permissions Update', `Updated permissions for ${ids.length} accounts.`, 'system');
+    } catch (error) {
+      console.error('Error bulk updating permissions in Supabase', error);
+      pushNotification('Update Failed', 'Permissions could not be bulk updated in database.', 'system');
+    }
+  };
+
   return {
     handleAddAccount,
     handleUpdateAccountStatus,
     handleUpdateAccount,
     handleBulkDeleteAccounts,
-    handleBulkUpdateAccountStatus
+    handleBulkUpdateAccountStatus,
+    handleBulkUpdatePermissions
   };
 };

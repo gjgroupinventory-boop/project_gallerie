@@ -207,11 +207,11 @@ export const useBranchAndOperationsSync = ({
     };
 
     void syncBranches();
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, handleBranchRealtime);
+    const channel = supabase.channel(`artisflow-branches-sync-${currentUser.id}`);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, handleBranchRealtime);
     
-    subscribeGlobalSyncChannel();
-    return () => { unsubscribeGlobalSyncChannel(); };
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id, setBranchAddresses, setBranchCategories, setBranchLogos, setBranches, setExclusiveBranches]);
 
   useEffect(() => {
@@ -323,8 +323,8 @@ export const useBranchAndOperationsSync = ({
     };
 
     void syncOperations();
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel
+    const channel = supabase.channel(`artisflow-operations-sync-${currentUser.id}`);
+    channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_logs' }, payload =>
         handleListRealtime(payload, setLogs, OPERATIONS_ROW_LIMITS.logs, normalizeActivityLog as any))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'audits' }, payload =>
@@ -340,7 +340,7 @@ export const useBranchAndOperationsSync = ({
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transfer_requests' }, payload =>
         handleListRealtime(payload, setTransferRequests, 200, parseTransferRequest));
 
-    subscribeGlobalSyncChannel();
-    return () => { unsubscribeGlobalSyncChannel(); };
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id, shouldSyncOperationalData, setAudits, setFramerRecords, setImportLogs, setLogs, setReturnRecords, setTransfers, setTransferRequests]);
 };

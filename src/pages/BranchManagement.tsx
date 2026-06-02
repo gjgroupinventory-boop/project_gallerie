@@ -27,7 +27,7 @@ interface BranchManagementProps {
   onUpdateBranchAddress?: (name: string, address: string) => void;
   onViewArtwork?: (id: string) => void;
   events?: ExhibitionEvent[];
-  onBulkSale?: (ids: string[], client: string, delivered: boolean, eventInfo?: { id: string; name: string }, attachments?: { itdrUrl?: string[]; rsaUrl?: string[]; orCrUrl?: string[] }, totalDownpayment?: number, clientEmail?: string, clientContact?: string, perArtworkDownpayments?: Record<string, number>, installmentsEnabled?: boolean) => void;
+  onBulkSale?: (ids: string[], client: string, delivered: boolean, eventInfo?: { id: string; name: string }, attachments?: { itdrUrl?: string[]; rsaUrl?: string[]; orCrUrl?: string[] }, totalDownpayment?: number, clientEmail?: string, clientContact?: string, perArtworkDownpayments?: Record<string, number>, installmentsEnabled?: boolean, discountPercentage?: Record<string, number> | number, remarks?: string) => void;
   onBulkReserve?: (ids: string[], details: string, expiryDate?: string, eventId?: string, eventName?: string) => void;
   onBulkTransferRequest?: (ids: string[], targetBranch: string, attachments?: { itdrUrl?: string }) => void;
   onBulkDeleteArtworks?: (ids: string[]) => void;
@@ -147,6 +147,9 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
   const [bulkActionValue, setBulkActionValue] = useState('');
   const [bulkClientEmail, setBulkClientEmail] = useState('');
   const [bulkClientContact, setBulkClientContact] = useState('');
+  const [bulkHandlingAgentName, setBulkHandlingAgentName] = useState('');
+  const [bulkSaleRemarks, setBulkSaleRemarks] = useState('');
+  const [bulkSaleDiscounts, setBulkSaleDiscounts] = useState<Record<string, string>>({});
   
   const existingCategories = useMemo(() => {
     const cats = new Set<string>();
@@ -160,6 +163,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
   const [bulkDownpayment, setBulkDownpayment] = useState('');
   const [bulkSaleDownpayments, setBulkSaleDownpayments] = useState<Record<string, string>>({});
   const [bulkSaleInstallmentsEnabled, setBulkSaleInstallmentsEnabled] = useState<Record<string, boolean>>({});
+  const [bulkActionExtra, setBulkActionExtra] = useState(false);
   const [bulkSaleEventId, setBulkSaleEventId] = useState('');
   const [bulkTempItdr, setBulkTempItdr] = useState<string | string[] | null>(null);
   const [bulkTempRsa, setBulkTempRsa] = useState<string | string[] | null>(null);
@@ -379,7 +383,6 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
     setBulkTempOrCr(null);
     setActiveBulkAttachmentTab('itdr');
     setReservationDetails('');
-    setIsCartOpen(true);
     setReservationTab('person');
     setReservationClient('');
     setReservationEventId('');
@@ -480,6 +483,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
     setBulkDownpayment('');
     setBulkSaleDownpayments({});
     setBulkSaleInstallmentsEnabled({});
+    setBulkActionExtra(false);
     setReservationDetails('');
     setBulkFramerDamage('');
     setBulkReturnReason('');
@@ -527,7 +531,30 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
                 .filter(([, value]) => !Number.isNaN(value) && value > 0)
             );
 
-            await Promise.resolve(onBulkSale(selectedArtworkIds, bulkActionValue, false,
+            const discountPcts: Record<string, number> = {};
+            selectedArtworkIds.forEach(id => {
+              const discountPctString = bulkSaleDiscounts[id] || '';
+              const discountPct = discountPctString ? parseFloat(discountPctString) : 0;
+              if (discountPct > 0) {
+                discountPcts[id] = discountPct;
+              }
+
+              // Ensure items not marked as downpayment get their SRP (discounted if applicable)
+              if (!bulkSaleInstallmentsEnabled[id] && !perArtworkDownpayments[id]) {
+                const art = permittedArtworks.find(a => a.id === id);
+                if (art) {
+                  const discountedPrice = discountPct > 0 ? Math.round(art.price * (1 - discountPct / 100)) : art.price;
+                  perArtworkDownpayments[id] = discountedPrice;
+                }
+              }
+            });
+
+            const hasInstallments = Object.values(bulkSaleInstallmentsEnabled).some(v => v);
+            const fullRemarks = bulkSaleRemarks.trim()
+              ? `${bulkSaleRemarks.trim()} | Handling Agent: ${bulkHandlingAgentName.trim()}`
+              : `Handling Agent: ${bulkHandlingAgentName.trim()}`;
+
+            await Promise.resolve(onBulkSale(selectedArtworkIds, bulkActionValue, bulkActionExtra,
               selectedEvent ? { id: selectedEvent.id, name: selectedEvent.title } : undefined,
               {
                 itdrUrl: bulkItdrList.length > 0 ? bulkItdrList : undefined,
@@ -538,7 +565,9 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
               bulkClientEmail || undefined,
               bulkClientContact || undefined,
               Object.keys(perArtworkDownpayments).length > 0 ? perArtworkDownpayments : undefined,
-              Object.values(bulkSaleInstallmentsEnabled).some(v => v)
+              hasInstallments,
+              Object.keys(discountPcts).length > 0 ? discountPcts : undefined,
+              fullRemarks
             ));
             setBulkTempItdr(null);
             setBulkTempRsa(null);
@@ -621,9 +650,13 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
       setBulkActionValue('');
       setBulkClientEmail('');
       setBulkClientContact('');
+      setBulkHandlingAgentName('');
+      setBulkSaleRemarks('');
+      setBulkSaleDiscounts({});
       setBulkDownpayment('');
       setBulkSaleDownpayments({});
       setBulkSaleInstallmentsEnabled?.({});
+      setBulkActionExtra(false);
       setReservationDetails('');
       setReservationTab('person');
       setReservationClient('');
@@ -1533,6 +1566,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
         cartArtworks={cartArtworks}
         setSelectedArtworkIds={setSelectedArtworkIds}
         bulkActionModal={bulkActionModal}
+        setBulkActionModal={setBulkActionModal}
         onBulkActionClick={handleBulkActionClick}
         permissions={permissions}
         canEdit={canEdit}
@@ -1540,69 +1574,69 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
         exclusiveBranches={exclusiveBranches}
         cartItemCount={cartItemCount}
         cartTotalValue={cartTotalValue}
-      />
 
-      {/* Bulk Action parameters Modal */}
-      {bulkActionModal && (
-        <BulkActionModal
-          bulkActionModal={bulkActionModal}
-          onClose={handleCloseBulkModal}
-          selectedIds={selectedArtworkIds}
-          setSelectedIds={setSelectedArtworkIds}
-          artworks={permittedArtworks}
-          bulkActionValue={bulkActionValue}
-          setBulkActionValue={setBulkActionValue}
-          bulkClientEmail={bulkClientEmail}
-          setBulkClientEmail={setBulkClientEmail}
-          bulkClientContact={bulkClientContact}
-          setBulkClientContact={setBulkClientContact}
-          bulkDownpayment={bulkDownpayment}
-          setBulkDownpayment={setBulkDownpayment}
-          bulkSaleDownpayments={bulkSaleDownpayments}
-          setBulkSaleDownpayments={setBulkSaleDownpayments}
-          bulkSaleInstallmentsEnabled={bulkSaleInstallmentsEnabled}
-          setBulkSaleInstallmentsEnabled={setBulkSaleInstallmentsEnabled}
-          bulkSaleEventId={bulkSaleEventId}
-          setBulkSaleEventId={setBulkSaleEventId}
-          events={events || []}
-          branches={branches}
-          activeBulkAttachmentTab={activeBulkAttachmentTab}
-          setActiveBulkAttachmentTab={setActiveBulkAttachmentTab}
-          bulkTempItdr={bulkTempItdr}
-          setBulkTempItdr={setBulkTempItdr}
-          bulkTempRsa={bulkTempRsa}
-          setBulkTempRsa={setBulkTempRsa}
-          bulkTempOrcr={bulkTempOrCr}
-          setBulkTempOrcr={setBulkTempOrCr}
-          reservationTab={reservationTab}
-          setReservationTab={setReservationTab}
-          reservationClient={reservationClient}
-          setReservationClient={setReservationClient}
-          reservationEventId={reservationEventId}
-          setReservationEventId={setReservationEventId}
-          reservationAuctionId={reservationAuctionId}
-          setReservationAuctionId={setReservationAuctionId}
-          reservationDays={reservationDays}
-          setReservationDays={setReservationDays}
-          reservationHours={reservationHours}
-          setReservationHours={setReservationHours}
-          reservationMinutes={reservationMinutes}
-          setReservationMinutes={setReservationMinutes}
-          reservationNotes={reservationDetails}
-          setReservationNotes={setReservationDetails}
-          framerDamageDetails={bulkFramerDamage}
-          setFramerDamageDetails={setBulkFramerDamage}
-          returnType={bulkReturnType}
-          setReturnType={setBulkReturnType}
-          returnReason={bulkReturnReason}
-          setReturnReason={setBulkReturnReason}
-          returnProofImage={bulkTempItdr}
-          setReturnProofImage={(val) => {
-            setBulkTempItdr(Array.isArray(val) ? val : ((val as string) || null));
-          }}
-          onSubmit={handleBulkActionSubmit}
-        />
-      )}
+        // Inline forms props
+        bulkActionValue={bulkActionValue}
+        setBulkActionValue={setBulkActionValue}
+        bulkClientEmail={bulkClientEmail}
+        setBulkClientEmail={setBulkClientEmail}
+        bulkClientContact={bulkClientContact}
+        setBulkClientContact={setBulkClientContact}
+        bulkSaleEventId={bulkSaleEventId}
+        setBulkSaleEventId={setBulkSaleEventId}
+        events={events || []}
+        branches={branches}
+        activeBulkAttachmentTab={activeBulkAttachmentTab}
+        setActiveBulkAttachmentTab={setActiveBulkAttachmentTab}
+        bulkTempItdr={bulkTempItdr}
+        setBulkTempItdr={setBulkTempItdr}
+        bulkTempRsa={bulkTempRsa}
+        setBulkTempRsa={setBulkTempRsa}
+        bulkTempOrcr={bulkTempOrCr}
+        setBulkTempOrcr={setBulkTempOrCr}
+        reservationTab={reservationTab}
+        setReservationTab={setReservationTab}
+        reservationClient={reservationClient}
+        setReservationClient={setReservationClient}
+        reservationEventId={reservationEventId}
+        setReservationEventId={setReservationEventId}
+        reservationAuctionId={reservationAuctionId}
+        setReservationAuctionId={setReservationAuctionId}
+        reservationDays={reservationDays}
+        setReservationDays={setReservationDays}
+        reservationHours={reservationHours}
+        setReservationHours={setReservationHours}
+        reservationMinutes={reservationMinutes}
+        setReservationMinutes={setReservationMinutes}
+        reservationNotes={reservationDetails}
+        setReservationNotes={setReservationDetails}
+        framerDamageDetails={bulkFramerDamage}
+        setFramerDamageDetails={setBulkFramerDamage}
+        returnType={bulkReturnType}
+        setReturnType={setBulkReturnType}
+        returnReason={bulkReturnReason}
+        setReturnReason={setBulkReturnReason}
+        returnProofImage={bulkTempItdr}
+        setReturnProofImage={(val) => {
+          setBulkTempItdr(Array.isArray(val) ? val : ((val as string) || null));
+        }}
+        bulkDownpayment={bulkDownpayment}
+        setBulkDownpayment={setBulkDownpayment}
+        bulkSaleDownpayments={bulkSaleDownpayments}
+        setBulkSaleDownpayments={setBulkSaleDownpayments}
+        bulkSaleInstallmentsEnabled={bulkSaleInstallmentsEnabled}
+        setBulkSaleInstallmentsEnabled={setBulkSaleInstallmentsEnabled}
+        bulkSaleDiscounts={bulkSaleDiscounts}
+        setBulkSaleDiscounts={setBulkSaleDiscounts}
+        bulkHandlingAgentName={bulkHandlingAgentName}
+        setBulkHandlingAgentName={setBulkHandlingAgentName}
+        bulkSaleRemarks={bulkSaleRemarks}
+        setBulkSaleRemarks={setBulkSaleRemarks}
+        bulkActionExtra={bulkActionExtra}
+        setBulkActionExtra={setBulkActionExtra}
+        onSubmit={handleBulkActionSubmit}
+        resetBulkModalState={handleCloseBulkModal}
+      />
 
       {/* Launch New Branch Add/Edit Modal */}
       <BranchFormModal

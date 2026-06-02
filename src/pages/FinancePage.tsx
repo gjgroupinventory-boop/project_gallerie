@@ -759,7 +759,23 @@ const FinancePage: React.FC = () => {
                   <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Top Performing Agent</p>
                   {metrics.topPerformingAgent ? (
                     <div>
-                      <p className="text-xs font-black text-neutral-900 truncate mt-0.5">{metrics.topPerformingAgent.name}</p>
+                      {(() => {
+                        const name = metrics.topPerformingAgent.name;
+                        if (name.includes(' — ')) {
+                          const parts = name.split(' — ');
+                          const branch = parts[0];
+                          const agent = parts.slice(1).join(' — ');
+                          return (
+                            <>
+                              <p className="text-xs font-black text-neutral-900 truncate mt-0.5" title={agent}>{agent}</p>
+                              <p className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider truncate mb-1" title={branch}>{branch}</p>
+                            </>
+                          );
+                        }
+                        return (
+                          <p className="text-xs font-black text-neutral-900 truncate mt-0.5" title={name}>{name}</p>
+                        );
+                      })()}
                       <p className="text-[11px] font-bold text-emerald-600">₱{metrics.topPerformingAgent.revenue.toLocaleString()}</p>
                     </div>
                   ) : (
@@ -1689,7 +1705,13 @@ const FinancePage: React.FC = () => {
                             : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 border border-neutral-200/50'
                         }`}
                       >
-                        {a}
+                      {(() => {
+                        if (a.includes(' — ')) {
+                          const [branch, agent] = a.split(' — ');
+                          return `${agent} (${branch})`;
+                        }
+                        return a;
+                      })()}
                       </button>
                     );
                   })}

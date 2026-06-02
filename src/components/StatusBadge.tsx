@@ -33,7 +33,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, sale, artworkP
         const isDownpayment = sale.downpayment !== undefined && sale.downpayment < artworkPrice;
         const isFullPayment = sale.downpayment !== undefined && sale.downpayment >= artworkPrice;
         
-        if (isDownpayment) {
+        if (sale.deliveryRequest?.status === 'Declined') {
+            displayText = 'Sold (Cancelled Delivery)';
+        } else if (isDownpayment) {
             displayText = `${status} (Partial)`;
         } else if (isFullPayment) {
             displayText = `${status} (Full)`;

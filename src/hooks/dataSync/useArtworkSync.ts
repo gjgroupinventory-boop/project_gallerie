@@ -173,8 +173,8 @@ export const useArtworkSync = ({
     };
 
     void syncArtworks();
-    const globalChannel = getGlobalSyncChannel();
-    globalChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'artworks' }, (payload) => {
+    const channel = supabase.channel(`artisflow-artworks-sync-${currentUser.id}`);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'artworks' }, (payload) => {
         const rawItem = payload.new || payload.old;
         if (!rawItem) return;
         
@@ -189,14 +189,14 @@ export const useArtworkSync = ({
           setAllArtworksIncludingDeleted(prev => {
             const exists = prev.some(a => String(a.id) === itemId);
             return exists 
-              ? prev.map(a => String(a.id) === itemId ? normalized : a) 
+              ? prev.map(a => String(a.id) === itemId ? { ...a, ...normalized } : a) 
               : [...prev, normalized];
           });
           setArtworks(prev => {
             if (normalized.deletedAt) return prev.filter(a => String(a.id) !== itemId);
             const exists = prev.some(a => String(a.id) === itemId);
             return exists 
-              ? prev.map(a => String(a.id) === itemId ? normalized : a) 
+              ? prev.map(a => String(a.id) === itemId ? { ...a, ...normalized } : a) 
               : [...prev, normalized];
           });
         } else if (payload.eventType === 'DELETE') {
@@ -206,7 +206,7 @@ export const useArtworkSync = ({
         }
       });
       
-    subscribeGlobalSyncChannel();
-    return () => { unsubscribeGlobalSyncChannel(); };
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id, shouldLoadFullArtworks, setAllArtworksIncludingDeleted, setArtworks, setIsLoadingArtworks, handleSyncError]);
 };

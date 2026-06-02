@@ -295,6 +295,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
   const [monthFilter, setMonthFilter] = useState<string>('All');
   const [mediumFilter, setMediumFilter] = useState<string>('All');
   const [sizeFilter, setSizeFilter] = useState<string>('');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
 
   const getPaymentSummary = (sale: SaleRecord, price: number) => {
@@ -442,11 +443,18 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
       if (yearFilter !== 'All' && saleDate.getFullYear().toString() !== yearFilter) return false;
       if (monthFilter !== 'All' && (saleDate.getMonth() + 1).toString() !== monthFilter) return false;
 
+      // Payment Type Filter
+      if (paymentTypeFilter !== 'All') {
+        const price = (art?.price || 0);
+        const { paymentType } = getPaymentSummary(sale, price);
+        if (paymentType !== paymentTypeFilter) return false;
+      }
+
       return true;
     });
 
     return result;
-  }, [allSales, filteredArtworks, branchFilter, artistFilter, clientFilter, yearFilter, monthFilter, mediumFilter, sizeFilter, searchTerm]);
+  }, [allSales, filteredArtworks, branchFilter, artistFilter, clientFilter, yearFilter, monthFilter, mediumFilter, sizeFilter, paymentTypeFilter, searchTerm]);
 
   const ledgerMetrics = useMemo(() => {
     return filteredSales.reduce((acc, sale) => {
@@ -471,7 +479,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
     });
   }, [filteredSales, filteredArtworks]);
 
-  const hasActiveFilters = branchFilter !== 'All' || artistFilter !== 'All' || clientFilter !== 'All' || mediumFilter !== 'All' || yearFilter !== 'All' || monthFilter !== 'All' || sizeFilter !== '' || searchTerm !== '';
+  const hasActiveFilters = branchFilter !== 'All' || artistFilter !== 'All' || clientFilter !== 'All' || mediumFilter !== 'All' || yearFilter !== 'All' || monthFilter !== 'All' || paymentTypeFilter !== 'All' || sizeFilter !== '' || searchTerm !== '';
 
   const clearFilters = () => {
     setBranchFilter('All');
@@ -480,6 +488,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
     setMediumFilter('All');
     setYearFilter('All');
     setMonthFilter('All');
+    setPaymentTypeFilter('All');
     setSizeFilter('');
     setSearchTerm('');
   };
@@ -581,7 +590,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
 
       {/* Filters Bar */}
       <div className="rounded-md border border-neutral-200 bg-white p-3 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,1.25fr)_repeat(4,minmax(150px,1fr))] xl:grid-cols-[minmax(280px,1.35fr)_repeat(7,minmax(135px,1fr))] gap-3 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,1.25fr)_repeat(4,minmax(150px,1fr))] xl:grid-cols-[minmax(280px,1.35fr)_repeat(8,minmax(125px,1fr))] gap-3 w-full">
           <div className="relative">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
@@ -668,6 +677,18 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
               <option key={m} value={m.toString()}>{new Date(0, m - 1).toLocaleString('default', { month: 'long' })}</option>
             ))}
+          </select>
+
+          {/* Payment Type Filter */}
+          <select
+            value={paymentTypeFilter}
+            onChange={(e) => setPaymentTypeFilter(e.target.value)}
+            className="w-full bg-neutral-50 border border-neutral-200 rounded-sm px-4 py-3 text-sm font-bold text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-500/20 focus:border-neutral-500 hover:bg-white transition-all cursor-pointer appearance-none"
+            title="Filter by Payment Type"
+          >
+            <option value="All">All Payment Types</option>
+            <option value="Full Payment">Full Payment</option>
+            <option value="Installment">Installment</option>
           </select>
 
           {/* Size Filter with Clear Button */}

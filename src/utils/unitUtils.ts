@@ -66,9 +66,4 @@ export const formatDimensions = (dimensions: string, artistName: string): string
   return dimensions;
 };
 
-/**
- * Formats the size with frame string similarly to formatDimensions.
- */
-export const formatSizeWithFrame = (sizeFrame: string, artistName: string): string => {
-  return formatDimensions(sizeFrame, artistName);
-};
+
