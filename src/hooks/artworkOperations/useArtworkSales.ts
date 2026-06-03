@@ -867,7 +867,9 @@ export const useArtworkSales = () => {
       if (updatedSale) {
         const { error } = await supabase
           .from('sales')
-          .update(mapToSnakeCase(updatedSale))
+          .update(mapToSnakeCase({
+            deliveryRequest: updatedSale.deliveryRequest
+          }))
           .eq('id', sale.id);
         if (error) throw error;
       }
