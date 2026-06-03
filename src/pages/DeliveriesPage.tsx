@@ -38,6 +38,7 @@ interface DeliveriesPageProps {
   onCancelSale: (id: string) => void;
   onApproveRequest?: (saleId: string, remarks: string) => void;
   onDeclineRequest?: (saleId: string, reason: string) => void;
+  onDeleteSale?: (saleId: string) => Promise<boolean>;
   currentUser?: any;
 }
 
@@ -66,6 +67,7 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
   onCancelSale,
   onApproveRequest,
   onDeclineRequest,
+  onDeleteSale,
   currentUser
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -641,13 +643,28 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
                             onClick={() => setDetailsSale({ sale, artwork })}
                             className="group bg-white rounded-sm border border-[#edebe9] overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full cursor-pointer"
                           >
-                             {/* Card Image Area */}
-                             <div className="aspect-[4/3] overflow-hidden relative bg-[#faf9f8]">
-                                <OptimizedImage src={artwork.imageUrl} className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" />
-                                
-                                <div className="absolute top-3 right-3">
-                                  <StatusBadge status={artwork.status} sale={sale} artworkPrice={artwork.price} />
-                                </div>
+                              {/* Card Image Area */}
+                              <div className="aspect-[4/3] overflow-hidden relative bg-[#faf9f8]">
+                                 <OptimizedImage src={artwork.imageUrl} className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" />
+                                 
+                                 {onDeleteSale && (
+                                   <div className="absolute top-3 left-3 z-10">
+                                     <button
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         onDeleteSale(sale.id);
+                                       }}
+                                       className="p-1.5 bg-white/95 hover:bg-[#a4262c] hover:text-white rounded-sm text-[#a4262c] border border-[#edebe9] shadow-sm transition-all duration-200 flex items-center justify-center"
+                                       title="Delete Sale Record"
+                                     >
+                                       <Trash2 size={12} />
+                                     </button>
+                                   </div>
+                                 )}
+
+                                 <div className="absolute top-3 right-3">
+                                   <StatusBadge status={artwork.status} sale={sale} artworkPrice={artwork.price} />
+                                 </div>
 
                                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#323130]/80 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                                   <p className="text-white text-[9px] font-black uppercase tracking-widest">{artwork.currentBranch}</p>
@@ -813,6 +830,18 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
                                           className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#f3f2f1] text-[#a19f9d] cursor-not-allowed"
                                         >
                                           {sale.isDelivered ? 'Done' : 'Approve Delivery'}
+                                        </button>
+                                      )}
+                                      {onDeleteSale && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteSale(sale.id);
+                                          }}
+                                          className="p-2 bg-[#fde7e9] text-[#a4262c] hover:bg-[#f8d7da] rounded-sm transition-all flex items-center justify-center border border-[#fde7e9]"
+                                          title="Delete Sale Record"
+                                        >
+                                          <Trash2 size={12} />
                                         </button>
                                       )}
                                     </div>

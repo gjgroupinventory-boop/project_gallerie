@@ -552,6 +552,7 @@ const App: React.FC = () => {
                 userPermissions={currentPermissions}
                 currentUser={currentUser}
                 onUpdateSale={handleUpdateSale}
+                onDeleteSale={handleDeleteSaleRecord}
                 onDispatch={handleDispatch}
                 onDeliver={handleDeliver}
                 onReturn={handleReturnArtwork}
