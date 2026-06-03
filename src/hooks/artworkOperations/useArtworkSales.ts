@@ -938,23 +938,46 @@ export const useArtworkSales = () => {
     const { updatedArtworks, updatedSales } = applyDelivery(artworks, sales, id, itdrStrFinal, rsaStrFinal, orcrStrFinal, carrier, referenceNumber);
     setArtworks(updatedArtworks);
     setSales(updatedSales);
-    const art = updatedArtworks.find(a => a.id === id);
-    const sale = updatedSales.find(s => s.artworkId === id);
+    const art = updatedArtworks.find(a => String(a.id) === String(id));
+    const sale = updatedSales.find(s => String(s.artworkId) === String(id));
     
     if (art) {
       logActivity(id, 'Delivered', `Artwork delivered to ${sale?.clientName || 'Client'}. ${carrier ? `Carrier: ${carrier}. ` : ''}${referenceNumber ? `Ref: ${referenceNumber}.` : ''}${remarks ? ` Remarks: ${remarks}` : ''}`, art);
     }
     if (IS_DEMO_MODE) return true;
-    if (!art || !sale) return false;
+    if (!art || !sale) {
+      console.error('handleDeliver: Artwork or Sale not found.', { id, art, sale });
+      alert(`Delivery Error: Could not find artwork or sale record in local state for ID: ${id}`);
+      return false;
+    }
 
-    await supabase.from('artworks').update(mapToSnakeCase({
-      status: art.status,
-      itdrImageUrl: itdrStrFinal,
-      rsaImageUrl: rsaStrFinal,
-      orCrImageUrl: orcrStrFinal
-    })).eq('id', id);
-    await supabase.from('sales').update(mapToSnakeCase(sale)).eq('id', sale.id);
-    return true;
+    try {
+      const artRes = await supabase.from('artworks').update(mapToSnakeCase({
+        status: art.status,
+        itdrImageUrl: itdrStrFinal,
+        rsaImageUrl: rsaStrFinal,
+        orCrImageUrl: orcrStrFinal
+      })).eq('id', id);
+      if (artRes.error) throw artRes.error;
+
+      const saleUpdates = {
+        isDelivered: true,
+        deliveryDate: sale.deliveryDate,
+        itdrUrl: sale.itdrUrl,
+        rsaUrl: sale.rsaUrl,
+        orCrUrl: sale.orCrUrl,
+        deliveryRequest: sale.deliveryRequest
+      };
+
+      const saleRes = await supabase.from('sales').update(mapToSnakeCase(saleUpdates)).eq('id', sale.id);
+      if (saleRes.error) throw saleRes.error;
+
+      return true;
+    } catch (err: any) {
+      console.error('Failed to update delivery in Supabase:', err);
+      alert(`Database Error (Delivery): ${err.message || err}`);
+      return false;
+    }
   };
 
   return {
