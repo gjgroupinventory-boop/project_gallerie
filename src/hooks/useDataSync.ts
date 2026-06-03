@@ -318,7 +318,32 @@ export const useDataSync = ({ activeTab, currentUser, selectedArtworkId }: UseDa
 
   useEffect(() => {
     if (!IS_DEMO_MODE) return;
-    // Load demo data if state is empty
+    
+    // Check if we have persisted fallback data in localStorage
+    const storedArtworks = localStorage.getItem('artisflow-demo-artworks');
+    const storedSales = localStorage.getItem('artisflow-demo-sales');
+    const storedEvents = localStorage.getItem('artisflow-demo-events');
+    const storedAccounts = localStorage.getItem('artisflow-demo-accounts');
+    const storedLogs = localStorage.getItem('artisflow-demo-logs');
+
+    if (storedArtworks && storedSales && storedEvents && storedAccounts && storedLogs) {
+      try {
+        setArtworks(JSON.parse(storedArtworks));
+        setSales(JSON.parse(storedSales));
+        setEvents(JSON.parse(storedEvents));
+        setAccounts(JSON.parse(storedAccounts));
+        setLogs(JSON.parse(storedLogs));
+        setIsLoadingArtworks(false);
+        setIsLoadingUsers(false);
+        setIsLoadingEvents(false);
+        setIsLoadingSales(false);
+        return;
+      } catch (e) {
+        console.error('Failed to parse demo local fallback', e);
+      }
+    }
+
+    // Load initial demo data if fallback is empty or failed
     if (artworks.length === 0) {
       import('../data').then(data => {
         setArtworks(data.INITIAL_ARTWORKS);
@@ -326,6 +351,13 @@ export const useDataSync = ({ activeTab, currentUser, selectedArtworkId }: UseDa
         setEvents(data.INITIAL_EVENTS);
         setSales(data.INITIAL_SALES);
         setLogs(data.INITIAL_LOGS);
+
+        localStorage.setItem('artisflow-demo-artworks', JSON.stringify(data.INITIAL_ARTWORKS));
+        localStorage.setItem('artisflow-demo-sales', JSON.stringify(data.INITIAL_SALES));
+        localStorage.setItem('artisflow-demo-events', JSON.stringify(data.INITIAL_EVENTS));
+        localStorage.setItem('artisflow-demo-accounts', JSON.stringify(data.INITIAL_ACCOUNTS));
+        localStorage.setItem('artisflow-demo-logs', JSON.stringify(data.INITIAL_LOGS));
+
         setIsLoadingArtworks(false);
         setIsLoadingUsers(false);
         setIsLoadingEvents(false);
@@ -333,6 +365,32 @@ export const useDataSync = ({ activeTab, currentUser, selectedArtworkId }: UseDa
       });
     }
   }, [artworks.length]);
+
+  // Sync back to localStorage when state changes in IS_DEMO_MODE
+  useEffect(() => {
+    if (!IS_DEMO_MODE || artworks.length === 0) return;
+    localStorage.setItem('artisflow-demo-artworks', JSON.stringify(artworks));
+  }, [artworks]);
+
+  useEffect(() => {
+    if (!IS_DEMO_MODE || sales.length === 0) return;
+    localStorage.setItem('artisflow-demo-sales', JSON.stringify(sales));
+  }, [sales]);
+
+  useEffect(() => {
+    if (!IS_DEMO_MODE || events.length === 0) return;
+    localStorage.setItem('artisflow-demo-events', JSON.stringify(events));
+  }, [events]);
+
+  useEffect(() => {
+    if (!IS_DEMO_MODE || accounts.length === 0) return;
+    localStorage.setItem('artisflow-demo-accounts', JSON.stringify(accounts));
+  }, [accounts]);
+
+  useEffect(() => {
+    if (!IS_DEMO_MODE || logs.length === 0) return;
+    localStorage.setItem('artisflow-demo-logs', JSON.stringify(logs));
+  }, [logs]);
 
   const hydratedTransferRequests = useMemo(() => {
     return transferRequests.map(req => {
