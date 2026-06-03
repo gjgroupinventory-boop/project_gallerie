@@ -297,14 +297,17 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
                   const displayImage = artwork?.imageUrl || req.artworkImage || '';
 
                   return (
-                    <tr key={req.id} className={`hover:bg-neutral-50 transition-colors ${selectedIds.includes(req.id) ? 'bg-neutral-50' : ''}`}>
-                      <td className="px-6 py-4">
+                    <tr 
+                      key={req.id} 
+                      onClick={() => setDetailsModal(req)}
+                      className={`hover:bg-neutral-50 transition-colors cursor-pointer ${selectedIds.includes(req.id) ? 'bg-neutral-50' : ''}`}
+                    >
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 cursor-pointer"
                           checked={selectedIds.includes(req.id)}
                           onChange={(e) => {
-                            e.stopPropagation();
                             if (e.target.checked) {
                               setSelectedIds(prev => [...prev, req.id]);
                             } else {
@@ -362,25 +365,25 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
                           {req.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         {(activeTab === 'incoming' || activeTab === 'on-hold') && req.status !== 'Accepted' && req.status !== 'Declined' && (currentUser.role === UserRole.ADMIN || req.toBranch === currentUser.branch) && (
                           <div className="flex justify-end space-x-2">
                             <button
-                              onClick={() => setConfirmationModal({ type: 'accept', request: req })}
+                               onClick={() => setConfirmationModal({ type: 'accept', request: req })}
                               className="px-4 py-1.5 bg-neutral-900 text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-black transition-all shadow-sm active:scale-95"
                             >
                               Accept
                             </button>
                             {req.status !== 'On Hold' && (
                               <button
-                                onClick={() => setConfirmationModal({ type: 'hold', request: req })}
+                                 onClick={() => setConfirmationModal({ type: 'hold', request: req })}
                                 className="px-4 py-1.5 bg-neutral-100 text-neutral-600 text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-neutral-200 transition-all active:scale-95 border border-neutral-200"
                               >
                                 Hold
                               </button>
                             )}
                             <button
-                              onClick={() => {
+                               onClick={() => {
                                 setDeclineResubmissionReasons([]);
                                 setConfirmationModal({ type: 'decline', request: req });
                               }}
