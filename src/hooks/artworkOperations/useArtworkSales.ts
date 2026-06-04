@@ -393,6 +393,74 @@ export const useArtworkSales = () => {
     return true;
   };
 
+  const handleBulkDeletePayments = async (items: { saleId: string, paymentId: string }[]) => {
+    if (!window.confirm(`Are you sure you want to permanently delete the selected payment record(s)?`)) {
+      return false;
+    }
+
+    const previousSales = sales;
+    let updatedSalesList = [...sales];
+
+    for (const item of items) {
+      const sale = updatedSalesList.find(s => s.id === item.saleId);
+      if (!sale) continue;
+
+      let updatedSale: SaleRecord = { ...sale };
+      const isDownpayment = item.paymentId === 'downpayment' || item.paymentId.endsWith('-dp');
+
+      if (isDownpayment) {
+        updatedSale.downpayment = undefined;
+        updatedSale.downpaymentRecordedAt = undefined;
+        updatedSale.pendingDownpaymentEdit = undefined;
+      } else {
+        if (sale.installments) {
+          updatedSale.installments = sale.installments.map(inst => {
+            if (inst.id === item.paymentId) {
+              if (inst.isPending) {
+                return null;
+              }
+              if (inst.pendingEdit) {
+                return { ...inst, pendingEdit: undefined };
+              }
+              return null;
+            }
+            return inst;
+          }).filter((inst): inst is InstallmentRecord => inst !== null);
+        }
+      }
+
+      updatedSalesList = updatedSalesList.map(s => s.id === item.saleId ? updatedSale : s);
+    }
+
+    setSales(updatedSalesList);
+
+    if (IS_DEMO_MODE) return true;
+
+    try {
+      const uniqueSaleIds = Array.from(new Set(items.map(i => i.saleId)));
+      for (const saleId of uniqueSaleIds) {
+        const updatedSale = updatedSalesList.find(s => s.id === saleId);
+        if (updatedSale) {
+          const { error } = await supabase.from('sales').update(mapToSnakeCase({
+            downpayment: updatedSale.downpayment ?? null,
+            downpaymentRecordedAt: updatedSale.downpaymentRecordedAt ?? null,
+            pendingDownpaymentEdit: updatedSale.pendingDownpaymentEdit ?? null,
+            installments: updatedSale.installments ?? null
+          })).eq('id', saleId);
+
+          if (error) throw error;
+        }
+      }
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting payments:', error);
+      setSales(previousSales);
+      pushNotification('Delete Failed', 'The payment record(s) could not be removed.', 'system');
+      return false;
+    }
+  };
+
+
   const handleApproveSale = async (saleId: string, remarks?: string) => {
     const sale = sales.find(s => s.id === saleId);
     if (!sale) return;
@@ -477,7 +545,7 @@ export const useArtworkSales = () => {
       setImportStatus(prev => ({ ...prev, message: 'Sale approved successfully!', progress: { current: 100, total: 100 } }));
 
       if (!isDelivered) {
-        pushNotification('Action Required', `Sale for "${sale.clientName}" approved. Please schedule delivery in the Logistics > Pending tab.`, 'system');
+        pushNotification('Action Required', `Sale for "${sale.clientName}" approved. Please schedule delivery in the Logistics > Pending tab.`, 'system', sale.artworkId);
       }
 
       return true;
@@ -887,18 +955,15 @@ export const useArtworkSales = () => {
 
     const updatedRequest: DeliveryRequest = {
       ...sale.deliveryRequest,
-      status: DeliveryRequestStatus.DISPATCHED,
+      status: DeliveryRequestStatus.APPROVED,
       approvedAt: new Date().toISOString(),
-      approvedBy: currentUser?.name || 'Admin',
-      dispatchedAt: new Date().toISOString(),
-      dispatchedBy: currentUser?.name || 'Admin'
+      approvedBy: currentUser?.name || 'Admin'
     };
 
     const success = await handleUpdateSale(saleId, { deliveryRequest: updatedRequest });
-    if (!success) return false;
-
-    return await handleDispatch(sale.artworkId, remarks);
+    return success;
   };
+
 
   const handleDeclineDeliveryRequest = async (saleId: string, reason: string) => {
     const sale = sales.find(s => s.id === saleId);
@@ -998,6 +1063,7 @@ export const useArtworkSales = () => {
     handleDispatch,
     handleApproveDeliveryRequest,
     handleDeclineDeliveryRequest,
-    handleDeliver
+    handleDeliver,
+    handleBulkDeletePayments
   };
 };

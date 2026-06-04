@@ -185,7 +185,7 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {permissions?.canEditArtwork && (
+            {permissions?.canExportArtwork && (
               <ExportDropdown
                 onExportExcel={exportInventory}
                 onExportPDF={exportPDF}
@@ -195,14 +195,18 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
             )}
             {permissions?.canAddArtwork && (
               <>
-                <input type="file" accept=".csv, .xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className={commandButtonClass}
-                >
-                  <Upload size={14} />
-                  <span className="hidden xl:inline">Bulk Import</span>
-                </button>
+                {permissions?.canImportArtwork && (
+                  <>
+                    <input type="file" accept=".csv, .xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className={commandButtonClass}
+                    >
+                      <Upload size={14} />
+                      <span className="hidden xl:inline">Bulk Import</span>
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="inline-flex h-9 items-center justify-center gap-2 rounded-sm bg-blue-600 px-4 text-[11px] font-bold uppercase tracking-[0.05em] text-white shadow-[0_2px_6px_rgba(37,99,235,0.25)] transition-colors hover:bg-blue-700 active:bg-blue-800"
@@ -217,7 +221,7 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
       </div>
 
       {/* BOTTOM ROW: DIMENSIONAL FILTERS */}
-      <div className="rounded-sm border border-slate-200 bg-slate-50/70 p-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="rounded-sm border border-slate-200 bg-white p-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <div className="flex flex-wrap items-center gap-3">
           <div className={groupClass}>
             <select

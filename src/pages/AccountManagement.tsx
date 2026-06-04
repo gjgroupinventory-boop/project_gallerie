@@ -89,6 +89,8 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
               { key: 'canApproveFinance', label: 'Approve Finance' },
               { key: 'canApproveLogistics', label: 'Approve Logistics' },
               { key: 'canAccessAuditLogs', label: 'Access Audit Logs' },
+              { key: 'canImportArtwork', label: 'Import Artwork Data' },
+              { key: 'canExportArtwork', label: 'Export Artwork & Sales Data' },
             ].map(({ key, label }) => (
               <label key={key} className="flex items-center space-x-3 cursor-pointer group">
                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${formData.permissions[key as keyof UserPermissions]
@@ -122,6 +124,44 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
               { key: 'canViewExhibit', label: 'Exhibit Artworks' },
               { key: 'canViewForFraming', label: 'Framing Artworks' },
               { key: 'canViewBackToArtist', label: 'Back to Artist Artworks' },
+            ].map(({ key, label }) => (
+              <label key={key} className="flex items-center space-x-3 cursor-pointer group">
+                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${formData.permissions[key as keyof UserPermissions]
+                  ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm'
+                  : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                  }`}>
+                  {formData.permissions[key as keyof UserPermissions] && (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={!!formData.permissions[key as keyof UserPermissions]}
+                  onChange={() => handlePermissionChange(key as keyof UserPermissions)}
+                />
+                <span className="text-sm font-medium text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-neutral-100">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-4">Dashboard Cards & Views</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'dashboardShowInventoryMetric', label: 'Inventory Metric Card' },
+              { key: 'dashboardShowSoldMetric', label: 'Sold Metric Card' },
+              { key: 'dashboardShowReservedMetric', label: 'Reserved Metric Card' },
+              { key: 'dashboardShowRevenueMetric', label: 'Revenue Metric Card' },
+              { key: 'dashboardShowSpotlightPiece', label: 'Spotlight Piece Card' },
+              { key: 'dashboardShowSpotlightBranch', label: 'Spotlight Branch Card' },
+              { key: 'dashboardShowNewestAdditions', label: 'Newest Additions Card' },
+              { key: 'dashboardShowGallerySchedule', label: 'Gallery Schedule Calendar' },
+              { key: 'dashboardShowDistributionChart', label: 'Distribution Pie Chart' },
+              { key: 'dashboardShowTeamPresence', label: 'Team Presence Widget' },
             ].map(({ key, label }) => (
               <label key={key} className="flex items-center space-x-3 cursor-pointer group">
                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${formData.permissions[key as keyof UserPermissions]
@@ -227,7 +267,10 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
   useEffect(() => {
     const matching = accounts.find(a => a.role === presetTargetRole);
     if (matching && matching.permissions) {
-      setPresetPermissions(matching.permissions);
+      setPresetPermissions({
+        ...getDefaultPermissions(presetTargetRole),
+        ...matching.permissions
+      });
     } else {
       setPresetPermissions(getDefaultPermissions(presetTargetRole));
     }
@@ -332,13 +375,17 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
 
   const openEditModal = (acc: UserAccount) => {
     setEditingAccount(acc);
+    const targetRole = acc.role || UserRole.BRANCH_USER;
     setFormData({
       firstName: acc.firstName || '',
       fullName: acc.fullName || acc.name || '',
       email: acc.email || '',
       branch: acc.branch || '',
-      role: acc.role || UserRole.BRANCH_USER,
-      permissions: acc.permissions || getDefaultPermissions(acc.role || UserRole.BRANCH_USER),
+      role: targetRole,
+      permissions: {
+        ...getDefaultPermissions(targetRole),
+        ...(acc.permissions || {})
+      },
       password: acc.password || ''
     });
     setShowEditModal(true);
@@ -404,7 +451,9 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Branch Account Management</h1>
+          <h1 className="text-2xl font-light text-neutral-900 tracking-tight leading-tight">
+            Branch <span className="font-serif italic font-medium">Account Management</span>
+          </h1>
           <p className="text-sm text-neutral-500">Manage gallery branch accounts, staff access, and role permissions.</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -556,7 +605,7 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
             })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Column 1: Access Level & Permissions */}
             <div className="space-y-4">
               <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">Access Level & Permissions</h4>
@@ -576,6 +625,8 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
                   { key: 'canApproveFinance', label: 'Approve Finance' },
                   { key: 'canApproveLogistics', label: 'Approve Logistics' },
                   { key: 'canAccessAuditLogs', label: 'Access Audit Logs' },
+                  { key: 'canImportArtwork', label: 'Import Artwork Data' },
+                  { key: 'canExportArtwork', label: 'Export Artwork & Sales Data' },
                 ].map(({ key, label }) => {
                   const isChecked = !!presetPermissions[key as keyof UserPermissions];
                   return (
@@ -688,6 +739,53 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
                         }}
                       />
                       <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{tab.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Column 4: Dashboard Cards & Views */}
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">Dashboard Cards & Views</h4>
+              <div className="space-y-3">
+                {[
+                  { key: 'dashboardShowInventoryMetric', label: 'Inventory Metric Card' },
+                  { key: 'dashboardShowSoldMetric', label: 'Sold Metric Card' },
+                  { key: 'dashboardShowReservedMetric', label: 'Reserved Metric Card' },
+                  { key: 'dashboardShowRevenueMetric', label: 'Revenue Metric Card' },
+                  { key: 'dashboardShowSpotlightPiece', label: 'Spotlight Piece Card' },
+                  { key: 'dashboardShowSpotlightBranch', label: 'Spotlight Branch Card' },
+                  { key: 'dashboardShowNewestAdditions', label: 'Newest Additions Card' },
+                  { key: 'dashboardShowGallerySchedule', label: 'Gallery Schedule Calendar' },
+                  { key: 'dashboardShowDistributionChart', label: 'Distribution Pie Chart' },
+                  { key: 'dashboardShowTeamPresence', label: 'Team Presence Widget' },
+                ].map(({ key, label }) => {
+                  const isChecked = !!presetPermissions[key as keyof UserPermissions];
+                  return (
+                    <label key={key} className="flex items-center space-x-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                        isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                      }`}>
+                        {isChecked && (
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={isChecked}
+                        onChange={() => {
+                          const nextPermissions = {
+                            ...presetPermissions,
+                            [key]: !presetPermissions[key as keyof UserPermissions]
+                          };
+                          setPresetPermissions(nextPermissions);
+                        }}
+                      />
+                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
                     </label>
                   );
                 })}

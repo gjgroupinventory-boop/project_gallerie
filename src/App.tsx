@@ -116,7 +116,7 @@ const App: React.FC = () => {
       handleReturnFromFramer, handleDeleteFramerRecord, handleUpdateReturnRecord, handleBulkDeleteReturnRecords,
       handleSale, handleDeliver, handleApproveSale, handleDeclineSale, handleAddInstallment, handleDeleteSaleRecord,
       handleEditPayment, handleApprovePaymentEdit, handleDeclinePaymentEdit, handleUpdateSale, handleDispatch,
-      handleApproveDeliveryRequest, handleDeclineDeliveryRequest
+      handleApproveDeliveryRequest, handleDeclineDeliveryRequest, handleBulkDeletePayments
     } = useArtworkOperations();
 
 
@@ -523,8 +523,10 @@ const App: React.FC = () => {
                 artworks={artworks}
                 onApproveSale={handleApproveSale}
                 onDeclineSale={handleDeclineSale}
+                onBulkDeleteSales={handleBulkDeleteSales}
                 onApprovePaymentEdit={handleApprovePaymentEdit}
                 onDeclinePaymentEdit={handleDeclinePaymentEdit}
+                onBulkDeletePayments={handleBulkDeletePayments}
                 onUpdateSale={handleUpdateSale}
                 userPermissions={currentPermissions}
                 currentUser={currentUser}
@@ -616,7 +618,7 @@ const App: React.FC = () => {
                 sales={sales}
                 artworks={allArtworksIncludingDeleted}
                 onBulkDelete={handleBulkDeleteSales}
-                canExport={currentPermissions.canViewSalesHistory}
+                canExport={currentPermissions.canExportArtwork}
                 canDelete={userRole === UserRole.ADMIN}
                 onCancelSale={handleCancelSale}
                 initialSaleId={targetSaleId}
@@ -787,6 +789,10 @@ const App: React.FC = () => {
                 branches={branches}
                 onViewArtwork={handleViewArtwork}
                 userPermissions={currentPermissions}
+                returnRecords={returnRecords}
+                onUpdateReturnRecord={handleUpdateReturnRecord}
+                onReturnToGallery={handleReturnToGallery}
+                onBulkDeleteReturnRecords={handleBulkDeleteReturnRecords}
               />
             </Suspense>
           );
@@ -943,6 +949,7 @@ const App: React.FC = () => {
                 artworks={artworks}
                 onApprovePaymentEdit={handleApprovePaymentEdit}
                 onDeclinePaymentEdit={handleDeclinePaymentEdit}
+                onBulkDeletePayments={handleBulkDeletePayments}
                 userPermissions={currentPermissions}
               />
             </Suspense>
@@ -972,6 +979,7 @@ const App: React.FC = () => {
                 artworks={artworks}
                 onApproveSale={handleApproveSale}
                 onDeclineSale={handleDeclineSale}
+                onBulkDeleteSales={handleBulkDeleteSales}
                 userPermissions={currentPermissions}
               />
             </Suspense>

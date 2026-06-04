@@ -952,14 +952,14 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
                 Administration
               </span>
               <span className="hidden md:inline-block h-px w-10 bg-neutral-200"></span>
-              <span className="hidden md:inline-block text-[11px] font-semibold text-neutral-500">
+              <span className="hidden md:inline-block text-[11px] font-serif italic text-neutral-500">
                 Design a vibrant network of ArtisFlow locations.
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-neutral-900">
+            <h1 className="text-4xl md:text-5xl font-serif italic text-neutral-900 font-medium">
               Branch Management
             </h1>
-            <p className="text-sm md:text-base text-neutral-500 max-w-2xl">
+            <p className="text-sm md:text-base text-neutral-500 max-w-2xl font-serif italic">
               Curate galleries, warehouses, and private collections in one colorful control room.
             </p>
           </div>

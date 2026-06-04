@@ -181,7 +181,9 @@ const TimeMachinePage: React.FC<TimeMachinePageProps> = ({
           >
             Present
           </button>
-          <button onClick={exportData} className="p-2 border border-neutral-700 bg-neutral-800 text-neutral-400 hover:text-white transition-colors"><Download size={16} /></button>
+          {userPermissions?.canExportArtwork && (
+            <button onClick={exportData} className="p-2 border border-neutral-700 bg-neutral-800 text-neutral-400 hover:text-white transition-colors"><Download size={16} /></button>
+          )}
         </div>
       </div>
 

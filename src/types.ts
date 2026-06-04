@@ -87,6 +87,18 @@ export interface UserPermissions {
   canApproveFinance: boolean;
   canApproveLogistics: boolean;
   canAccessAuditLogs: boolean;
+  canImportArtwork: boolean;
+  canExportArtwork: boolean;
+  dashboardShowInventoryMetric: boolean;
+  dashboardShowSoldMetric: boolean;
+  dashboardShowReservedMetric: boolean;
+  dashboardShowRevenueMetric: boolean;
+  dashboardShowSpotlightPiece: boolean;
+  dashboardShowSpotlightBranch: boolean;
+  dashboardShowNewestAdditions: boolean;
+  dashboardShowGallerySchedule: boolean;
+  dashboardShowDistributionChart: boolean;
+  dashboardShowTeamPresence: boolean;
   accessibleTabs?: string[];
 }
 

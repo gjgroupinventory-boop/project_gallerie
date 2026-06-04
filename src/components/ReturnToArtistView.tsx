@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ReturnRecord, Artwork, UserPermissions, ArtworkStatus, ReturnType } from '../types';
+import { ReturnRecord, Artwork, UserPermissions, ArtworkStatus, ReturnType, FramerRecord } from '../types';
 import { normalizeReturnProofImages, serializeReturnProofImages } from '../utils/returnProofUtils';
 import { Search, Filter, FileText, Package, X, MapPin, Tag, Clock, AlertCircle, Edit, Save, Upload, RotateCcw, Archive, Banknote, Trash2, Check, Wrench } from 'lucide-react';
 
@@ -12,6 +12,10 @@ interface ReturnToArtistViewProps {
   onBulkDeleteReturnRecords?: (ids: string[]) => void;
   onViewArtwork?: (id: string) => void;
   permissions?: UserPermissions;
+  framerRecords?: FramerRecord[];
+  onReturnFromFramer?: (id: string, branch: string) => void;
+  onDeleteFramerRecord?: (id: string) => void;
+  onTransfer?: (ids: string[], targetBranch: string, attachments?: { itdrUrl?: string | string[] }) => void;
 }
 
 const Modal: React.FC<{ children: React.ReactNode, onClose: () => void, title: string }> = ({ children, onClose, title }) => (
@@ -73,7 +77,7 @@ const ConfirmationModal: React.FC<ConfirmModalProps> = ({ isOpen, title, message
   );
 };
 
-const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords = [], artworks = [], branches: availableBranches = [], onUpdateReturnRecord, onReturnToGallery, onBulkDeleteReturnRecords, permissions, onViewArtwork }) => {
+const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords = [], artworks = [], branches: availableBranches = [], onUpdateReturnRecord, onReturnToGallery, onBulkDeleteReturnRecords, permissions, onViewArtwork, framerRecords = [], onReturnFromFramer, onDeleteFramerRecord, onTransfer }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBranch, setSelectedBranch] = useState<string>('All');
   const [returnTargetBranch, setReturnTargetBranch] = useState<string>(''); // New State for Return Action
@@ -81,8 +85,8 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
   const [selectedMedium, setSelectedMedium] = useState<string>('All');
   const [selectedSize, setSelectedSize] = useState<string>('All');
   const [selectedRecord, setSelectedRecord] = useState<ReturnRecord | null>(null);
-  const [activeTab, setActiveTab] = useState<'Artist Reclaim' | 'For Retouch'>('Artist Reclaim');
-
+  const [activeTab, setActiveTab] = useState<'Artist Reclaim' | 'For Retouch' | 'For Framing'>('Artist Reclaim');
+  const [activeStatModal, setActiveStatModal] = useState<'total' | 'recent' | 'value' | 'branch' | null>(null);
 
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -255,10 +259,52 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
       };
     });
 
-    return Array.from(
+    const returns = Array.from(
       new Map([...formalRecords, ...virtualRecords].map(record => [record.id, record])).values()
     );
-  }, [returnRecords, artworks]);
+
+    // Framer Records mapping
+    const formalFramerRecords = (framerRecords || []).filter(r => r.status !== 'Resolved');
+    const formalFramerRecordArtworkIds = new Set(formalFramerRecords.map(r => r.artworkId));
+
+    const orphanedFramerArtworks = (artworks || []).filter(art => {
+      if (!isStatus(art.status, ArtworkStatus.FOR_FRAMING)) return false;
+      return !formalFramerRecordArtworkIds.has(art.id);
+    });
+
+    const uniqueOrphanedFramerArtworks = Array.from(
+      new Map(orphanedFramerArtworks.map(art => [art.id, art])).values()
+    );
+
+    const virtualFramerRecords: FramerRecord[] = uniqueOrphanedFramerArtworks.map(art => ({
+      id: `virtual-${art.id}`,
+      artworkId: art.id,
+      damageDetails: 'Marked for Framing (In Inventory)',
+      sentDate: art.createdAt || new Date().toISOString(),
+      artworkSnapshot: art,
+      status: 'Open' as const,
+      remarks: 'Automated discovery: Artwork status set to For Framing in inventory without formal record.'
+    }));
+
+    const framers = Array.from(
+      new Map([...formalFramerRecords, ...virtualFramerRecords].map(record => [record.id, record])).values()
+    );
+
+    const mappedFramers: ReturnRecord[] = framers.map(f => ({
+      id: f.id,
+      artworkId: f.artworkId,
+      reason: f.damageDetails,
+      returnedBy: 'System Discovery',
+      returnDate: f.sentDate,
+      artworkSnapshot: f.artworkSnapshot,
+      remarks: f.remarks,
+      returnType: 'For Framing' as any, // Cast as ReturnType
+      status: f.status === 'Open' ? 'Open' : 'Resolved',
+      proofImage: f.attachmentUrl
+    }));
+
+    return [...returns, ...mappedFramers];
+  }, [returnRecords, framerRecords, artworks]);
   const selectedRecordProofImages = normalizeReturnProofImages(selectedRecord?.proofImage);
 
   const branches = useMemo(() => ['All', ...Array.from(new Set(activeRecords.map(r => r.artworkSnapshot.currentBranch))).sort()], [activeRecords]);
@@ -267,28 +313,64 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
   const sizes = useMemo(() => ['All', ...Array.from(new Set(activeRecords.map(r => r.artworkSnapshot.dimensions))).sort()], [activeRecords]);
 
 
-  // Dashboard Stats
+  // Dashboard Stats & Lists
+  const recentRecordsList = useMemo(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return activeRecords
+      .filter(r => new Date(r.returnDate) > thirtyDaysAgo)
+      .sort((a, b) => new Date(b.returnDate).getTime() - new Date(a.returnDate).getTime());
+  }, [activeRecords]);
+
+  const valueStats = useMemo(() => {
+    const reclaimValue = activeRecords
+      .filter(r => r.returnType === 'Artist Reclaim')
+      .reduce((sum, r) => sum + (r.artworkSnapshot.price || 0), 0);
+    const retouchValue = activeRecords
+      .filter(r => r.returnType === 'For Retouch')
+      .reduce((sum, r) => sum + (r.artworkSnapshot.price || 0), 0);
+    const highValueReturns = [...activeRecords]
+      .sort((a, b) => (b.artworkSnapshot.price || 0) - (a.artworkSnapshot.price || 0))
+      .slice(0, 5);
+    return { reclaimValue, retouchValue, highValueReturns };
+  }, [activeRecords]);
+
+  const branchStats = useMemo(() => {
+    const counts: Record<string, { count: number; value: number; reclaim: number; retouch: number }> = {};
+    activeRecords.forEach(r => {
+      const br = r.artworkSnapshot.currentBranch || 'Unknown Branch';
+      if (!counts[br]) {
+        counts[br] = { count: 0, value: 0, reclaim: 0, retouch: 0 };
+      }
+      counts[br].count += 1;
+      counts[br].value += r.artworkSnapshot.price || 0;
+      if (r.returnType === 'Artist Reclaim') {
+        counts[br].reclaim += 1;
+      } else {
+        counts[br].retouch += 1;
+      }
+    });
+    return Object.entries(counts)
+      .map(([branchName, stat]) => ({ branchName, ...stat }))
+      .sort((a, b) => b.count - a.count);
+  }, [activeRecords]);
+
   const stats = useMemo(() => {
     const total = activeRecords.length;
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
-    const recent = activeRecords.filter(r => new Date(r.returnDate) > thirtyDaysAgo).length;
+    const recent = recentRecordsList.length;
 
     // Total Value Calculation
     const totalValue = activeRecords.reduce((acc, curr) => acc + (curr.artworkSnapshot.price || 0), 0);
 
-    const branchCounts = activeRecords.reduce((acc, curr) => {
-      acc[curr.artworkSnapshot.currentBranch] = (acc[curr.artworkSnapshot.currentBranch] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    const topBranch = Object.entries(branchCounts).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0]?.[0] || 'N/A';
+    const topBranch = branchStats[0]?.branchName || 'N/A';
 
     // Tab-Specific Stats
     const reclaimedCount = activeRecords.filter(r => r.returnType === 'Artist Reclaim').length;
     const retouchCount = activeRecords.filter(r => r.returnType === 'For Retouch').length;
+    const framerCount = activeRecords.filter(r => r.returnType === ('For Framing' as any)).length;
 
-    return { total, recent, totalValue, topBranch, reclaimedCount, retouchCount };
-  }, [activeRecords]);
+    return { total, recent, totalValue, topBranch, reclaimedCount, retouchCount, framerCount };
+  }, [activeRecords, recentRecordsList, branchStats]);
 
 
   const filteredRecords = activeRecords.filter(record => {
@@ -332,52 +414,7 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
     <div className="space-y-8 animate-in fade-in duration-500">
 
 
-      {/* Dashboard Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Returns</h4>
-            <div className="p-2 bg-neutral-100 text-neutral-700 rounded-lg group-hover:scale-110 transition-transform">
-              <Package size={18} />
-            </div>
-          </div>
-          <p className="text-3xl font-black text-neutral-900">{stats.total}</p>
-          <p className="text-xs text-neutral-500 mt-1 font-medium">Lifetime records</p>
-        </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Recent Returns</h4>
-            <div className="p-2 bg-neutral-100 text-neutral-700 rounded-lg group-hover:scale-110 transition-transform">
-              <Clock size={18} />
-            </div>
-          </div>
-          <p className="text-3xl font-black text-neutral-900">{stats.recent}</p>
-          <p className="text-xs text-neutral-500 mt-1 font-medium">Last 30 days</p>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Value</h4>
-            <div className="p-2 bg-neutral-100 text-neutral-700 rounded-lg group-hover:scale-110 transition-transform">
-              <Banknote size={18} />
-            </div>
-          </div>
-          <p className="text-xl font-black text-neutral-900 line-clamp-1">₱{stats.totalValue.toLocaleString()}</p>
-          <p className="text-xs text-neutral-500 mt-1 font-medium">Value of returned items</p>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Top Branch</h4>
-            <div className="p-2 bg-neutral-100 text-neutral-700 rounded-lg group-hover:scale-110 transition-transform">
-              <MapPin size={18} />
-            </div>
-          </div>
-          <p className="text-lg font-black text-neutral-900 line-clamp-1" title={stats.topBranch}>{stats.topBranch}</p>
-          <p className="text-xs text-neutral-500 mt-1 font-medium">Highest return rate</p>
-        </div>
-      </div>
 
       {/* Controls & Filters Container */}
       <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-sm space-y-4">
@@ -484,6 +521,19 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
             {stats.retouchCount}
           </span>
         </button>
+        <button
+          onClick={() => setActiveTab('For Framing')}
+          className={`px-8 py-2.5 rounded-xl text-sm font-black transition-all duration-200 flex items-center gap-2 ${activeTab === 'For Framing'
+            ? 'bg-teal-600 text-white shadow-lg shadow-teal-200 ring-1 ring-teal-500'
+            : 'text-neutral-500 hover:text-neutral-700 hover:bg-white/50'
+            }`}
+        >
+          <Wrench size={16} />
+          For Framing
+          <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === 'For Framing' ? 'bg-teal-700 text-white' : 'bg-neutral-200 text-neutral-600'}`}>
+            {stats.framerCount}
+          </span>
+        </button>
       </div>
 
       {/* Grid */}      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -516,21 +566,51 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
                         {selectedIds.has(record.id) && <Check size={10} className="text-white" />}
                       </div>
                     </div>
-                    {onBulkDeleteReturnRecords && (
+                    {((record.returnType === ('For Framing' as any) && onDeleteFramerRecord) || (record.returnType !== ('For Framing' as any) && onBulkDeleteReturnRecords)) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           requestConfirmation(
-                            'Delete Return Record?',
-                            'Are you sure you want to delete this return record?',
-                            () => onBulkDeleteReturnRecords([record.id]),
+                            record.returnType === ('For Framing' as any) ? 'Delete Framer Record?' : 'Delete Return Record?',
+                            record.returnType === ('For Framing' as any) ? 'Are you sure you want to delete this framing record?' : 'Are you sure you want to delete this return record?',
+                            () => record.returnType === ('For Framing' as any) ? (onDeleteFramerRecord && onDeleteFramerRecord(record.id)) : (onBulkDeleteReturnRecords && onBulkDeleteReturnRecords([record.id])),
                             true,
                             'Yes, Delete'
                           );
                         }}
-                        className="w-5 h-5 flex items-center justify-center bg-white/90 hover:bg-red-55 text-neutral-400 hover:text-red-600 rounded border border-neutral-200 shadow-sm transition-colors backdrop-blur-sm"
+                        className="w-5 h-5 flex items-center justify-center bg-white/90 hover:bg-red-50 text-neutral-400 hover:text-red-600 rounded border border-neutral-200 shadow-sm transition-colors backdrop-blur-sm"
                       >
                         <Trash2 size={10} />
+                      </button>
+                    )}
+                    {((record.returnType === ('For Framing' as any) && onReturnFromFramer) || (record.returnType !== ('For Framing' as any) && onReturnToGallery)) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const targetBranch = record.artworkSnapshot.currentBranch || 'Main Gallery';
+                          requestConfirmation(
+                            'Restore to Inventory?',
+                            `Are you sure you want to return this artwork to ${targetBranch}?`,
+                            async () => {
+                              if (record.returnType === ('For Framing' as any)) {
+                                if (onReturnFromFramer) onReturnFromFramer(record.id, targetBranch);
+                              } else {
+                                if (onReturnToGallery) {
+                                  const ok = await onReturnToGallery(record.id, targetBranch);
+                                  if (!ok) {
+                                    alert("FAIL: Return operation rejected by system.");
+                                  }
+                                }
+                              }
+                            },
+                            false,
+                            'Yes, Restore'
+                          );
+                        }}
+                        title={`Return to ${record.artworkSnapshot.currentBranch || 'Main Gallery'}`}
+                        className="w-5 h-5 flex items-center justify-center bg-white/90 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 rounded border border-neutral-200 shadow-sm transition-colors backdrop-blur-sm"
+                      >
+                        <RotateCcw size={10} />
                       </button>
                     )}
                   </div>
@@ -546,11 +626,14 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
                     </div>
                   )}
                   <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
-                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border shadow-sm backdrop-blur-md ${record.returnType === 'For Retouch'
-                      ? 'bg-orange-100 text-orange-850 border-orange-200'
-                      : 'bg-neutral-900 text-white border-neutral-900'
+                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border shadow-sm backdrop-blur-md ${
+                      record.returnType === 'For Retouch'
+                        ? 'bg-orange-100 text-orange-850 border-orange-200'
+                        : record.returnType === ('For Framing' as any)
+                          ? 'bg-teal-100 text-teal-850 border-teal-200'
+                          : 'bg-neutral-900 text-white border-neutral-900'
                       }`}>
-                      {record.returnType === 'For Retouch' ? 'RETOUCH' : 'RETURNED'}
+                      {record.returnType === 'For Retouch' ? 'RETOUCH' : record.returnType === ('For Framing' as any) ? 'FRAMING' : 'RETURNED'}
                     </span>
                   </div>
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-neutral-900/80 to-transparent p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -626,26 +709,52 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
             </div>
 
             {/* Return Information Box - Matched to Reference */}
-            <div className={`rounded-2xl p-6 border ${selectedRecord.returnType === 'For Retouch' ? 'bg-orange-50 border-orange-200' : 'bg-neutral-50 border-neutral-200'}`}>
-              <h4 className={`text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-2 ${selectedRecord.returnType === 'For Retouch' ? 'text-orange-900' : 'text-neutral-900'}`}>
-                <FileText size={14} className={selectedRecord.returnType === 'For Retouch' ? 'text-orange-600' : 'text-neutral-600'} />
-                {selectedRecord.returnType === 'For Retouch' ? 'RETOUCH INFORMATION' : 'RETURN INFORMATION'}
+            <div className={`rounded-2xl p-6 border ${
+              selectedRecord.returnType === 'For Retouch' 
+                ? 'bg-orange-50 border-orange-200' 
+                : selectedRecord.returnType === ('For Framing' as any)
+                  ? 'bg-teal-50/50 border-teal-200'
+                  : 'bg-neutral-50 border-neutral-200'
+            }`}>
+              <h4 className={`text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-2 ${
+                selectedRecord.returnType === 'For Retouch' 
+                  ? 'text-orange-900' 
+                  : selectedRecord.returnType === ('For Framing' as any)
+                    ? 'text-teal-900'
+                    : 'text-neutral-900'
+              }`}>
+                <FileText size={14} className={
+                  selectedRecord.returnType === 'For Retouch' 
+                    ? 'text-orange-600' 
+                    : selectedRecord.returnType === ('For Framing' as any)
+                      ? 'text-teal-600'
+                      : 'text-neutral-600'
+                } />
+                {selectedRecord.returnType === 'For Retouch' 
+                  ? 'RETOUCH INFORMATION' 
+                  : selectedRecord.returnType === ('For Framing' as any)
+                    ? 'FRAMING INFORMATION'
+                    : 'RETURN INFORMATION'}
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12 mb-6">
                 <div>
-                  <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${selectedRecord.returnType === 'For Retouch' ? 'text-neutral-500' : 'text-neutral-500'}`}>RETURN DATE</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-1 text-neutral-500">
+                    {selectedRecord.returnType === ('For Framing' as any) ? 'SENT DATE' : 'RETURN DATE'}
+                  </label>
                   <p className="text-neutral-900 font-semibold">{new Date(selectedRecord.returnDate).toLocaleString()}</p>
                 </div>
                 <div>
-                  <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${selectedRecord.returnType === 'For Retouch' ? 'text-neutral-500' : 'text-neutral-500'}`}>PROCESSED BY</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-1 text-neutral-500">PROCESSED BY</label>
                   <p className="text-neutral-900 font-semibold">{selectedRecord.returnedBy}</p>
                 </div>
               </div>
 
               <div>
-                <label className={`text-[10px] font-bold uppercase tracking-wider block mb-2 ${selectedRecord.returnType === 'For Retouch' ? 'text-neutral-500' : 'text-neutral-500'}`}>REASON FOR RETURN</label>
-                <div className={`bg-white p-4 rounded-xl border shadow-sm ${selectedRecord.returnType === 'For Retouch' ? 'border-neutral-100' : 'border-neutral-100'}`}>
+                <label className="text-[10px] font-bold uppercase tracking-wider block mb-2 text-neutral-500">
+                  {selectedRecord.returnType === ('For Framing' as any) ? 'FRAMING DETAILS' : 'REASON FOR RETURN'}
+                </label>
+                <div className="bg-white p-4 rounded-xl border border-neutral-100 shadow-sm">
                   <p className="text-neutral-900 font-medium italic">
                     "{selectedRecord.reason}"
                   </p>
@@ -653,15 +762,15 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
               </div>
 
               {selectedRecord.remarks && (
-                <div className={`mt-6 pt-6 border-t ${selectedRecord.returnType === 'For Retouch' ? 'border-neutral-100' : 'border-neutral-100'}`}>
-                  <label className={`text-[10px] font-bold uppercase tracking-wider block mb-2 ${selectedRecord.returnType === 'For Retouch' ? 'text-neutral-500' : 'text-neutral-500'}`}>ADDITIONAL REMARKS</label>
+                <div className="mt-6 pt-6 border-t border-neutral-100">
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-2 text-neutral-500">ADDITIONAL REMARKS</label>
                   <p className="text-neutral-700 text-sm">{selectedRecord.remarks}</p>
                 </div>
               )}
             </div>
 
-            {/* Return to Gallery Action - Only available for retouch records */}
-            {onReturnToGallery && selectedRecord.returnType === 'For Retouch' && (
+            {/* Return to Gallery Action - Available for all return records */}
+            {((selectedRecord.returnType === ('For Framing' as any) && onReturnFromFramer) || (selectedRecord.returnType !== ('For Framing' as any) && onReturnToGallery)) && (
               <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200 flex flex-col gap-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -695,11 +804,18 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
                         'Restore to Inventory?',
                         `Are you sure you want to return this artwork to ${returnTargetBranch}?`,
                         async () => {
-                          const ok = await onReturnToGallery(selectedRecord.id, returnTargetBranch);
-                          if (ok) {
-                            setSelectedRecord(null); // Close modal
+                          if (selectedRecord.returnType === ('For Framing' as any)) {
+                            if (onReturnFromFramer) onReturnFromFramer(selectedRecord.id, returnTargetBranch);
+                            setSelectedRecord(null);
                           } else {
-                            alert("FAIL: Return operation rejected by system. Check diagnostics above.");
+                            if (onReturnToGallery) {
+                              const ok = await onReturnToGallery(selectedRecord.id, returnTargetBranch);
+                              if (ok) {
+                                setSelectedRecord(null); // Close modal
+                              } else {
+                                alert("FAIL: Return operation rejected by system. Check diagnostics above.");
+                              }
+                            }
                           }
                         },
                         false,
@@ -848,6 +964,243 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
         confirmLabel={confirmState.confirmLabel}
         isDangerous={confirmState.isDangerous}
       />
+
+      {/* Stat Modals */}
+      {activeStatModal === 'total' && (
+        <Modal title="Total Unresolved Returns Breakdown" onClose={() => setActiveStatModal(null)}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
+              <div>
+                <p className="text-sm font-bold text-neutral-400 uppercase tracking-wide">Active Unresolved Returns</p>
+                <p className="text-3xl font-black text-neutral-900 mt-1">{stats.total}</p>
+              </div>
+              <div className="p-3 bg-neutral-900 text-white rounded-xl">
+                <Package size={24} />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Type Distribution</h4>
+              
+              <div className="flex gap-2 h-3 rounded-full overflow-hidden bg-neutral-100">
+                <div 
+                  className="bg-red-600 transition-all" 
+                  style={{ width: `${stats.total > 0 ? (stats.reclaimedCount / stats.total) * 100 : 0}%` }}
+                  title={`Returned (VOID): ${stats.reclaimedCount}`}
+                />
+                <div 
+                  className="bg-blue-600 transition-all" 
+                  style={{ width: `${stats.total > 0 ? (stats.retouchCount / stats.total) * 100 : 0}%` }}
+                  title={`For Retouch: ${stats.retouchCount}`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-red-100 bg-red-50/50 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-red-700 font-bold text-xs uppercase tracking-wide">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-600" />
+                      Returned (VOID)
+                    </div>
+                    <p className="text-2xl font-black text-red-950 mt-2">{stats.reclaimedCount}</p>
+                  </div>
+                  <button 
+                    onClick={() => { setActiveTab('Artist Reclaim'); setActiveStatModal(null); }}
+                    className="mt-4 text-left text-xs font-bold text-red-600 hover:text-red-700 transition-colors"
+                  >
+                    View in Reclaim Tab →
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/50 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-blue-700 font-bold text-xs uppercase tracking-wide">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                      For Retouch
+                    </div>
+                    <p className="text-2xl font-black text-blue-950 mt-2">{stats.retouchCount}</p>
+                  </div>
+                  <button 
+                    onClick={() => { setActiveTab('For Retouch'); setActiveStatModal(null); }}
+                    className="mt-4 text-left text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    View in Retouch Tab →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {activeStatModal === 'recent' && (
+        <Modal title="Recent Returns (Last 30 Days)" onClose={() => setActiveStatModal(null)}>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
+              <div>
+                <p className="text-sm font-bold text-neutral-400 uppercase tracking-wide">Recent Return Actions</p>
+                <p className="text-3xl font-black text-neutral-900 mt-1">{stats.recent}</p>
+              </div>
+              <div className="p-3 bg-neutral-900 text-white rounded-xl">
+                <Clock size={24} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Recent Records</h4>
+              <div className="max-h-[350px] overflow-y-auto space-y-2.5 pr-2">
+                {recentRecordsList.length === 0 ? (
+                  <p className="text-sm text-neutral-400 py-8 text-center bg-neutral-50 rounded-xl border border-dashed border-neutral-200">No return actions in the last 30 days.</p>
+                ) : (
+                  recentRecordsList.map((record) => {
+                    const liveArt = artworks.find(a => a.id === record.artworkId);
+                    const image = liveArt?.imageUrl || record.artworkSnapshot.imageUrl;
+                    return (
+                      <div 
+                        key={record.id}
+                        onClick={() => { handleSelectRecord(record); setActiveStatModal(null); }}
+                        className="flex gap-4 p-3 rounded-xl border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50/50 transition-all cursor-pointer items-center"
+                      >
+                        <div className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
+                          {image ? (
+                            <img src={image} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-300"><Package size={16} /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-xs font-bold text-neutral-900 truncate">{record.artworkSnapshot.title}</h5>
+                          <p className="text-[10px] text-neutral-500 font-medium truncate">by {record.artworkSnapshot.artist}</p>
+                          <p className="text-[9px] text-neutral-400 font-semibold mt-0.5">{new Date(record.returnDate).toLocaleDateString()}</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border shrink-0 ${
+                          record.returnType === 'For Retouch' 
+                            ? 'bg-orange-100 text-orange-850 border-orange-200' 
+                            : 'bg-neutral-900 text-white border-neutral-900'
+                        }`}>
+                          {record.returnType === 'For Retouch' ? 'Retouch' : 'Returned'}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {activeStatModal === 'value' && (
+        <Modal title="Returned Value Insights" onClose={() => setActiveStatModal(null)}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
+              <div>
+                <p className="text-sm font-bold text-neutral-400 uppercase tracking-wide">Total Value Out of Circulation</p>
+                <p className="text-3xl font-black text-neutral-900 mt-1">₱{stats.totalValue.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-neutral-900 text-white rounded-xl">
+                <Banknote size={24} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50/50">
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">Returned (Void) Value</p>
+                <p className="text-lg font-black text-neutral-850 mt-1">₱{valueStats.reclaimValue.toLocaleString()}</p>
+              </div>
+              <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50/50">
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">Retouch Value</p>
+                <p className="text-lg font-black text-neutral-850 mt-1">₱{valueStats.retouchValue.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Highest Value Returned Items</h4>
+              <div className="space-y-2">
+                {valueStats.highValueReturns.length === 0 ? (
+                  <p className="text-sm text-neutral-400 text-center py-6">No return records found</p>
+                ) : (
+                  valueStats.highValueReturns.map((record) => {
+                    const liveArt = artworks.find(a => a.id === record.artworkId);
+                    const image = liveArt?.imageUrl || record.artworkSnapshot.imageUrl;
+                    return (
+                      <div 
+                        key={record.id}
+                        onClick={() => { handleSelectRecord(record); setActiveStatModal(null); }}
+                        className="flex gap-4 p-3 rounded-xl border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50/50 transition-all cursor-pointer items-center"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
+                          {image ? (
+                            <img src={image} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-300"><Package size={14} /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-xs font-bold text-neutral-900 truncate">{record.artworkSnapshot.title}</h5>
+                          <p className="text-[10px] text-neutral-500 font-medium truncate">by {record.artworkSnapshot.artist}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-black text-neutral-900">₱{(record.artworkSnapshot.price || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {activeStatModal === 'branch' && (
+        <Modal title="Returns By Branch" onClose={() => setActiveStatModal(null)}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
+              <div>
+                <p className="text-sm font-bold text-neutral-400 uppercase tracking-wide">Top Branch For Returns</p>
+                <p className="text-2xl font-black text-neutral-900 mt-1">{stats.topBranch}</p>
+              </div>
+              <div className="p-3 bg-neutral-900 text-white rounded-xl">
+                <MapPin size={24} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Branch Ranking</h4>
+              <div className="max-h-[350px] overflow-y-auto space-y-3 pr-2">
+                {branchStats.length === 0 ? (
+                  <p className="text-sm text-neutral-400 text-center py-6">No branch return data available</p>
+                ) : (
+                  branchStats.map((branch) => {
+                    const maxCount = Math.max(...branchStats.map(b => b.count), 1);
+                    const percentage = (branch.count / maxCount) * 100;
+                    return (
+                      <div key={branch.branchName} className="p-4 rounded-xl border border-neutral-200 space-y-2 bg-white">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="text-xs font-bold text-neutral-900">{branch.branchName}</h5>
+                            <p className="text-[10px] font-semibold text-neutral-500 mt-0.5">
+                              {branch.reclaim} Returned (Void) • {branch.retouch} For Retouch
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-black text-neutral-900">{branch.count} {branch.count === 1 ? 'record' : 'records'}</p>
+                            <p className="text-[10px] font-bold text-neutral-500 mt-0.5">₱{branch.value.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-neutral-800 h-full rounded-full" style={{ width: `${percentage}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

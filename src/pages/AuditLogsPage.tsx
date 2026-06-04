@@ -314,7 +314,9 @@ const AuditLogsPage: React.FC<AuditLogsPageProps> = ({ logs, artworks, onViewArt
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-neutral-900 tracking-tight">System Audit Ledger</h1>
+          <h1 className="text-2xl font-light text-neutral-900 tracking-tight leading-tight">
+            System <span className="font-serif italic text-neutral-900 font-medium">Audit Ledger</span>
+          </h1>
           <p className="text-sm text-neutral-500">Immutable record of all user activities and inventory state changes.</p>
         </div>
 

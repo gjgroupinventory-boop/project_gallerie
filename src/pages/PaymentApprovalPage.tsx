@@ -13,6 +13,7 @@ interface PaymentApprovalPageProps {
   onBulkDeletePayments?: (items: { saleId: string, paymentId: string }[]) => void;
   userPermissions?: UserPermissions;
   hideHeader?: boolean;
+  externalActiveTab?: 'approval' | 'history';
 }
 
 const PaymentApprovalPage: React.FC<PaymentApprovalPageProps> = ({
@@ -22,9 +23,16 @@ const PaymentApprovalPage: React.FC<PaymentApprovalPageProps> = ({
   onDeclinePaymentEdit,
   onBulkDeletePayments,
   userPermissions,
-  hideHeader
+  hideHeader,
+  externalActiveTab
 }) => {
   const [activeTab, setActiveTab] = useState<'approval' | 'history'>('approval');
+
+  React.useEffect(() => {
+    if (externalActiveTab) {
+      setActiveTab(externalActiveTab);
+    }
+  }, [externalActiveTab]);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedHistoryIds, setSelectedHistoryIds] = useState<string[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('All');
@@ -335,25 +343,27 @@ const PaymentApprovalPage: React.FC<PaymentApprovalPageProps> = ({
 
       {hideHeader && (
          <div className="flex items-center justify-between mb-8">
-            <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm w-fit border border-neutral-200">
-                <button
-                  onClick={() => setActiveTab('approval')}
-                  className={`px-8 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-sm transition-all flex items-center gap-2 ${activeTab === 'approval' ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' : 'text-neutral-400 hover:text-neutral-600'}`}
-                >
-                  Pending Collection
-                  {pendingPayments.length > 0 && (
-                    <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
-                      {pendingPayments.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`px-8 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-sm transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' : 'text-neutral-400 hover:text-neutral-600'}`}
-                >
-                  Collection History
-                </button>
-              </div>
+            {!externalActiveTab ? (
+              <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm w-fit border border-neutral-200">
+                  <button
+                    onClick={() => setActiveTab('approval')}
+                    className={`px-8 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-sm transition-all flex items-center gap-2 ${activeTab === 'approval' ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' : 'text-neutral-400 hover:text-neutral-600'}`}
+                  >
+                    Pending Collection
+                    {pendingPayments.length > 0 && (
+                      <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
+                        {pendingPayments.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className={`px-8 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-sm transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' : 'text-neutral-400 hover:text-neutral-600'}`}
+                  >
+                    Collection History
+                  </button>
+                </div>
+            ) : <div />}
 
               {activeTab === 'approval' && (
                 <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm border border-neutral-200">
@@ -410,7 +420,7 @@ const PaymentApprovalPage: React.FC<PaymentApprovalPageProps> = ({
             ) : (
               <div className="flex flex-col gap-6">
                 {/* Search and Filters Toolbar */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-100/50 p-4 rounded-xl border border-slate-200/60 backdrop-blur-sm shadow-sm">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-md border border-neutral-200 shadow-sm">
                   <div className="relative flex-1 max-w-md w-full">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input

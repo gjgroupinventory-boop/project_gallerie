@@ -217,8 +217,8 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
         <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Gross Sales</h4>
-            <div className="p-2 bg-neutral-900 text-white rounded-lg group-hover:scale-110 transition-transform shadow-lg shadow-neutral-900/20">
-              <Package size={18} />
+            <div className="p-2 bg-neutral-900 text-white rounded-lg group-hover:bg-neutral-950 transition-all duration-300 shadow-lg shadow-neutral-900/20">
+              <Package size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:rotate-12" />
             </div>
           </div>
           <p className="text-xl font-black text-neutral-900 line-clamp-1">₱{stats.totalGrossAmount.toLocaleString()}</p>
@@ -228,8 +228,8 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
         <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-emerald-500">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Collected Revenue</h4>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg group-hover:scale-110 transition-transform">
-              <Banknote size={18} />
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+              <Banknote size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:-translate-y-0.5" />
             </div>
           </div>
           <p className="text-xl font-black text-emerald-700 line-clamp-1">₱{stats.totalCollectedRevenue.toLocaleString()}</p>
@@ -246,8 +246,8 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
         <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-orange-500">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Balance to Collect</h4>
-            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:scale-110 transition-transform">
-              <History size={18} />
+            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+              <History size={18} className="transition-all duration-700 group-hover:scale-115 group-hover:rotate-[360deg]" />
             </div>
           </div>
           <p className="text-xl font-black text-orange-700 line-clamp-1">₱{stats.pendingBalance.toLocaleString()}</p>
@@ -257,8 +257,8 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
         <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Active Partial</h4>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:scale-110 transition-transform">
-              <CreditCard size={18} />
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+              <CreditCard size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:translate-x-0.5" />
             </div>
           </div>
           <p className="text-3xl font-black text-neutral-900">{stats.downpaymentCount}</p>

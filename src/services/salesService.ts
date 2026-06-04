@@ -4,17 +4,29 @@ import { generateUUID } from '../utils/idUtils';
 export const sanitizeArtworkSnapshot = (art: any): any => {
   if (!art) return undefined;
   const clean = { ...art };
-  if (clean.imageUrl && clean.imageUrl.startsWith('data:image')) {
+  if (clean.imageUrl && typeof clean.imageUrl === 'string' && clean.imageUrl.startsWith('data:image')) {
     clean.imageUrl = '[Base64 Image]';
   }
-  if (clean.itdrImageUrl && (clean.itdrImageUrl.startsWith('data:image') || Array.isArray(clean.itdrImageUrl))) {
-    clean.itdrImageUrl = Array.isArray(clean.itdrImageUrl) ? [] : '[Base64 Image]';
+  if (clean.itdrImageUrl) {
+    if (Array.isArray(clean.itdrImageUrl)) {
+      clean.itdrImageUrl = [];
+    } else if (typeof clean.itdrImageUrl === 'string' && clean.itdrImageUrl.startsWith('data:image')) {
+      clean.itdrImageUrl = '[Base64 Image]';
+    }
   }
-  if (clean.rsaImageUrl && (clean.rsaImageUrl.startsWith('data:image') || Array.isArray(clean.rsaImageUrl))) {
-    clean.rsaImageUrl = Array.isArray(clean.rsaImageUrl) ? [] : '[Base64 Image]';
+  if (clean.rsaImageUrl) {
+    if (Array.isArray(clean.rsaImageUrl)) {
+      clean.rsaImageUrl = [];
+    } else if (typeof clean.rsaImageUrl === 'string' && clean.rsaImageUrl.startsWith('data:image')) {
+      clean.rsaImageUrl = '[Base64 Image]';
+    }
   }
-  if (clean.orCrImageUrl && (clean.orCrImageUrl.startsWith('data:image') || Array.isArray(clean.orCrImageUrl))) {
-    clean.orCrImageUrl = Array.isArray(clean.orCrImageUrl) ? [] : '[Base64 Image]';
+  if (clean.orCrImageUrl) {
+    if (Array.isArray(clean.orCrImageUrl)) {
+      clean.orCrImageUrl = [];
+    } else if (typeof clean.orCrImageUrl === 'string' && clean.orCrImageUrl.startsWith('data:image')) {
+      clean.orCrImageUrl = '[Base64 Image]';
+    }
   }
   delete clean.itdrImageUrl;
   delete clean.rsaImageUrl;

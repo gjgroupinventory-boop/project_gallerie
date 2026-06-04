@@ -15,7 +15,7 @@ import { useActivityLogs } from './useActivityLogs';
 export const useTransferOperations = () => {
   const {
     artworks, setArtworks,
-    setTransferRequests,
+    transferRequests, setTransferRequests,
     exclusiveBranches
   } = useData();
 
@@ -329,12 +329,20 @@ export const useTransferOperations = () => {
     });
 
     try {
+      const deletedRequests = transferRequests.filter(r => ids.includes(String(r.id)));
+      const items = deletedRequests.map(r => ({
+        id: r.artworkId || r.id,
+        title: r.artworkTitle || 'Transfer Request',
+        code: r.artworkCode || `${r.fromBranch} ➔ ${r.toBranch}`,
+        imageUrl: r.artworkImage
+      }));
+
       if (!IS_DEMO_MODE) {
         const { error } = await supabase.from('transfer_requests').delete().in('id', ids);
         if (error) throw error;
       }
       setTransferRequests(prev => prev.filter(r => !ids.includes(String(r.id))));
-      pushNotification('Bulk Delete Complete', `Successfully removed ${ids.length} transfer records.`, 'inventory');
+      pushNotification('Bulk Delete Complete', `Successfully removed ${ids.length} transfer records.`, 'inventory', undefined, items);
     } catch (error: any) {
       console.error('Bulk Delete Transfers Error:', error);
       pushNotification('Action Failed', `Failed to delete records: ${error.message || 'Unknown error'}`, 'system');

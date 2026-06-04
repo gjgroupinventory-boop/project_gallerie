@@ -30,6 +30,7 @@
     transform: translateX(120%) translateY(0);
     opacity: 0;
   }
+
   to {
     transform: translateX(0) translateY(0);
     opacity: 1;
@@ -41,6 +42,7 @@
     transform: translateX(0) translateY(0);
     opacity: 1;
   }
+
   to {
     transform: translateX(120%) translateY(0);
     opacity: 0;
@@ -57,9 +59,13 @@
 
 /* Hide scrollbar for horizontal scrolling elements */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
+
 .hide-scrollbar::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
 }

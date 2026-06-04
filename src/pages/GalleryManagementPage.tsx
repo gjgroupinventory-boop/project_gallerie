@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { ExhibitionEvent, Artwork, SaleRecord, UserPermissions, ReturnRecord, FramerRecord, TransferRecord, UserAccount, ReturnType, ArtworkStatus, ImportRecord } from '../types';
 import EventManagement from './EventManagement';
 import AuctionManagement from './AuctionManagement';
@@ -9,7 +10,7 @@ import ReturnToArtistView from '../components/ReturnToArtistView';
 import FramerManagementView from '../components/FramerManagementView';
 import ReservationsView from './ReservationsView';
 import SalesView from '../components/SalesView';
-import { Calendar, Building2, Sparkles, RotateCcw, Gavel, CalendarClock, Wrench, Calculator, Banknote } from 'lucide-react';
+import { Calendar, Building2, Sparkles, RotateCcw, Gavel, CalendarClock, Wrench, Calculator, Banknote, Leaf, Box } from 'lucide-react';
 import { ICONS } from '../constants';
 
 interface GalleryManagementPageProps {
@@ -164,10 +165,10 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                   <Sparkles size={12} className="mr-1.5 text-neutral-300" />
                   WORKSPACE
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">
-                  Gallery Operations
+                <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white leading-tight">
+                  Gallery <span className="font-serif italic text-white font-medium">Operations</span>
                 </h1>
-                <p className="text-sm md:text-base text-neutral-400 max-w-xl font-medium">
+                <p className="text-sm md:text-base text-neutral-400 max-w-xl font-serif italic">
                   Orchestrate branches, exhibitions, and inventory in one vivid cockpit.
                 </p>
               </div>
@@ -191,20 +192,35 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
               </div>
             </div>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="inline-flex items-center space-x-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400 self-start md:self-auto">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Operations Live</span>
+              <div className="inline-flex items-center space-x-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-400 self-start md:self-auto">
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 15, -10, 15, 0],
+                    y: [0, -1, 0, -1, 0]
+                  }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    duration: 4, 
+                    ease: "easeInOut" 
+                  }}
+                  className="inline-block shrink-0 origin-bottom"
+                >
+                  <Leaf size={13} className="fill-emerald-400/20 text-emerald-400" />
+                </motion.div>
+                <span>Life</span>
               </div>
               <div className="flex bg-neutral-900/50 border border-white/5 rounded-xl p-1 gap-1 overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-1 pb-2 md:pb-1">
                 {(props.userPermissions?.canManageEvents || props.userPermissions?.canAddArtwork) && (
                   <button
                     onClick={() => handleTabChange('branches')}
-                    className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'branches'
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'branches'
                       ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                       : 'text-neutral-200 hover:text-white hover:bg-white/5'
                       }`}
                   >
-                    <Building2 size={18} />
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-12 ${activeTab === 'branches' ? 'text-emerald-600' : 'text-emerald-400'}`}>
+                      <Building2 size={18} />
+                    </span>
                     <span>Branches</span>
                   </button>
                 )}
@@ -212,22 +228,26 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                   <>
                     <button
                       onClick={() => handleTabChange('events')}
-                      className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'events'
+                      className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'events'
                         ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                         : 'text-neutral-400 hover:text-white hover:bg-white/10'
                         }`}
                     >
-                      <Calendar size={18} />
+                      <span className={`transition-all duration-300 group-hover:scale-115 group-hover:-translate-y-0.5 ${activeTab === 'events' ? 'text-blue-600' : 'text-blue-400'}`}>
+                        <Calendar size={18} />
+                      </span>
                       <span>Exhibitions</span>
                     </button>
                     <button
                       onClick={() => handleTabChange('auctions')}
-                      className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'auctions'
+                      className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'auctions'
                         ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                         : 'text-neutral-400 hover:text-white hover:bg-white/10'
                         }`}
                     >
-                      <Gavel size={18} />
+                      <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-45 ${activeTab === 'auctions' ? 'text-amber-600' : 'text-amber-400'}`}>
+                        <Gavel size={18} />
+                      </span>
                       <span>For Auction</span>
                     </button>
                   </>
@@ -235,70 +255,82 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                 {props.userPermissions?.canViewSalesHistory && (
                   <button
                     onClick={() => handleTabChange('sales')}
-                    className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'sales'
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'sales'
                       ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                       : 'text-neutral-400 hover:text-white hover:bg-white/10'
                       }`}
                   >
-                    <Banknote size={18} />
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:-translate-y-0.5 ${activeTab === 'sales' ? 'text-purple-600' : 'text-purple-400'}`}>
+                      <Banknote size={18} />
+                    </span>
                     <span>Sales</span>
                   </button>
                 )}
                 {props.userPermissions?.canViewReserved && (
                   <button
                     onClick={() => handleTabChange('reservations')}
-                    className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'reservations'
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'reservations'
                       ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                       : 'text-neutral-400 hover:text-white hover:bg-white/10'
                       }`}
                   >
-                    <CalendarClock size={18} />
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-[360deg] duration-700 ${activeTab === 'reservations' ? 'text-rose-600' : 'text-rose-400'}`}>
+                      <CalendarClock size={18} />
+                    </span>
                     <span>Reservations</span>
                   </button>
                 )}
                 <button
                   onClick={() => handleTabChange('inventory')}
-                  className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'inventory'
+                  className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'inventory'
                     ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                     : 'text-neutral-400 hover:text-white hover:bg-white/10'
                     }`}
                 >
-                  <span>{ICONS.Inventory}</span>
+                  <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-12 ${activeTab === 'inventory' ? 'text-indigo-600' : 'text-indigo-400'}`}>
+                    <Box size={18} />
+                  </span>
                   <span>Inventory</span>
                 </button>
                 {props.userPermissions?.canViewBackToArtist && (
                   <button
                     onClick={() => handleTabChange('returned')}
-                    className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'returned'
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'returned'
                       ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                       : 'text-neutral-400 hover:text-white hover:bg-white/10'
                       }`}
                   >
-                    <RotateCcw size={18} />
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-[-45deg] ${activeTab === 'returned' ? 'text-red-600' : 'text-red-400'}`}>
+                      <RotateCcw size={18} />
+                    </span>
                     <span>Return to Artist</span>
                   </button>
                 )}
                 {props.userPermissions?.canViewForFraming && (
                   <button
                     onClick={() => handleTabChange('framer')}
-                    className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'framer'
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'framer'
                       ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                       : 'text-neutral-400 hover:text-white hover:bg-white/10'
                       }`}
                   >
-                    <Wrench size={18} />
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-[30deg] ${activeTab === 'framer' ? 'text-teal-600' : 'text-teal-400'}`}>
+                      <Wrench size={18} />
+                    </span>
                     <span>For Framing</span>
                   </button>
                 )}
                 {(props.userPermissions?.canManageAccounts || props.userPermissions?.canManageEvents) && (
                   <button
                     onClick={() => handleTabChange('monitoring')}
-                    className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'monitoring'
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'monitoring'
                       ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
                       : 'text-neutral-400 hover:text-white hover:bg-white/10'
                       }`}
                   >
-                    <Calculator size={18} />
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:-rotate-12 ${activeTab === 'monitoring' ? 'text-cyan-600' : 'text-cyan-400'}`}>
+                      <Calculator size={18} />
+                    </span>
                     <span>Monitoring</span>
                   </button>
                 )}
@@ -430,6 +462,10 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
             onReturnToGallery={props.onReturnToGallery}
             onBulkDeleteReturnRecords={props.onBulkDeleteReturnRecords}
             permissions={props.userPermissions}
+            framerRecords={props.framerRecords || []}
+            onReturnFromFramer={props.onReturnFromFramer}
+            onDeleteFramerRecord={props.onDeleteFramerRecord}
+            onTransfer={props.onBulkTransferRequest}
           />
         )}
         {activeTab === 'framer' && (

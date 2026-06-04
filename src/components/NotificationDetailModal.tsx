@@ -135,6 +135,27 @@ const NotificationDetailModal: React.FC<NotificationDetailModalProps> = ({ notif
                   </div>
                 </div>
               </div>
+
+              {(notification.userName || notification.agent) && (
+                <div className="grid grid-cols-2 gap-4 mb-6 pb-4 border-b border-neutral-100">
+                  {notification.userName && (
+                    <div>
+                      <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Action By</span>
+                      <div className="text-xs font-semibold text-neutral-800">
+                        {notification.userName}
+                      </div>
+                    </div>
+                  )}
+                  {notification.agent && (
+                    <div>
+                      <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Branch / Office</span>
+                      <div className="text-xs font-semibold text-neutral-800">
+                        {notification.agent}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -210,42 +231,75 @@ const NotificationDetailModal: React.FC<NotificationDetailModalProps> = ({ notif
 
           {relatedArtwork && (
             <div className="mt-6 border-t border-neutral-100 pt-6">
-              <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">Related Artwork</h3>
-              <div
-                onClick={() => {
-                  if (onViewArtwork) {
-                    onViewArtwork(relatedArtwork.id);
-                    onClose();
-                  }
-                }}
-                className="group flex items-center gap-4 p-3 bg-white border border-neutral-200 rounded-2xl hover:border-neutral-300 hover:shadow-md transition-all cursor-pointer"
-              >
-                <div className="w-16 h-16 rounded-xl overflow-hidden bg-neutral-100 flex-shrink-0">
-                  <img
-                    src={relatedArtwork.imageUrl}
-                    alt={relatedArtwork.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-neutral-900 truncate group-hover:text-neutral-700 transition-colors">
-                    {relatedArtwork.title}
-                  </h4>
-                  <p className="text-xs text-neutral-500 truncate">{relatedArtwork.artist}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-600 text-[10px] font-bold uppercase">
-                      {relatedArtwork.code}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${relatedArtwork.status === 'Available' ? 'bg-neutral-100 text-neutral-700' :
-                      relatedArtwork.status === 'Sold' ? 'bg-neutral-900 text-neutral-100' :
-                        'bg-neutral-200 text-neutral-600'
+              <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">Related Artwork Details</h3>
+              <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+                {/* Main clickable info header */}
+                <div
+                  onClick={() => {
+                    if (onViewArtwork) {
+                      onViewArtwork(relatedArtwork.id);
+                      onClose();
+                    }
+                  }}
+                  className="group flex items-center gap-4 p-4 border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer transition-colors"
+                >
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-neutral-100 flex-shrink-0 border border-neutral-200">
+                    <img
+                      src={relatedArtwork.imageUrl}
+                      alt={relatedArtwork.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-neutral-900 truncate group-hover:text-neutral-700 transition-colors">
+                      {relatedArtwork.title}
+                    </h4>
+                    <p className="text-xs text-neutral-500 truncate mb-1.5">{relatedArtwork.artist}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-600 text-[10px] font-bold uppercase">
+                        {relatedArtwork.code}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                        relatedArtwork.status === 'Available' ? 'bg-green-50 text-green-700 border border-green-100' :
+                        relatedArtwork.status === 'Sold' ? 'bg-neutral-900 text-neutral-100' :
+                        relatedArtwork.status === 'Reserved' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                        'bg-neutral-100 text-neutral-600 border border-neutral-200'
                       }`}>
-                      {relatedArtwork.status}
-                    </span>
+                        {relatedArtwork.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-2 text-neutral-300 group-hover:text-neutral-900 group-hover:translate-x-0.5 transition-all">
+                    <ArrowRight size={20} />
                   </div>
                 </div>
-                <div className="p-2 text-neutral-300 group-hover:text-neutral-900 transition-colors">
-                  <ArrowRight size={20} />
+
+                {/* Metadata Grid */}
+                <div className="p-4 bg-neutral-50/50 grid grid-cols-2 gap-4 text-xs">
+                  <div className="bg-white p-3 rounded-xl border border-neutral-100 shadow-sm">
+                    <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Price</span>
+                    <span className="font-bold text-neutral-900 text-sm">
+                      ₱{relatedArtwork.price?.toLocaleString() || '0'}
+                    </span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-neutral-100 shadow-sm">
+                    <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Dimensions</span>
+                    <span className="font-semibold text-neutral-700 truncate block" title={relatedArtwork.dimensions}>
+                      {relatedArtwork.dimensions || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-neutral-100 shadow-sm">
+                    <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Medium</span>
+                    <span className="font-semibold text-neutral-700 truncate block" title={relatedArtwork.medium}>
+                      {relatedArtwork.medium || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-neutral-100 shadow-sm">
+                    <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Current Branch</span>
+                    <span className="font-semibold text-neutral-700 truncate block" title={relatedArtwork.currentBranch}>
+                      {relatedArtwork.currentBranch || 'N/A'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

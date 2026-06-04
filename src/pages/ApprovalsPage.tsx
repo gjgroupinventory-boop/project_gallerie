@@ -22,6 +22,7 @@ interface ApprovalsPageProps {
 
 const ApprovalsPage: React.FC<ApprovalsPageProps> = (props) => {
   const [activeTab, setActiveTab] = useState<'sales' | 'payments'>('sales');
+  const [subTab, setSubTab] = useState<'approval' | 'history'>('approval');
 
   const canAccessSales = (props.userPermissions?.accessibleTabs && Array.isArray(props.userPermissions.accessibleTabs))
     ? (props.userPermissions.accessibleTabs.includes('sales-approval') || props.userPermissions.accessibleTabs.includes('approvals'))
@@ -45,27 +46,43 @@ const ApprovalsPage: React.FC<ApprovalsPageProps> = (props) => {
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
-      {/* Tab Switcher Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-start gap-12 pb-8 border-b border-slate-200">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Finance Approval</h1>
-          <p className="text-sm font-medium text-slate-500">Manage administrative validations and financial verifications</p>
+      {/* Elegant Header Card */}
+      <div className="bg-neutral-950 border border-neutral-900 p-6 rounded-md shadow-sm relative overflow-hidden">
+        {/* Background decorative watermark */}
+        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-white/5 select-none pointer-events-none leading-none -mb-4">
+          APPROVAL
         </div>
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span>Administrative Audit</span>
+          </div>
+          <h1 className="text-3xl font-light text-white tracking-tight leading-tight">
+            Finance <span className="font-serif italic text-white font-medium">Approval</span>
+          </h1>
+          <p className="text-xs text-neutral-400 font-medium leading-relaxed">
+            Manage administrative validations and financial verifications.
+          </p>
+        </div>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/80 rounded-xl border border-slate-200/60 backdrop-blur-md w-fit">
+      {/* Tab Switcher Controls Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-3 bg-white rounded-md border border-neutral-200 shadow-sm">
+        {/* Left Side: Category (Sales vs Payments) */}
+        <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm w-fit border border-neutral-200">
           {canAccessSales && (
             <button
               onClick={() => setActiveTab('sales')}
-              className={`flex items-center gap-2.5 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
+              className={`flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${
                 activeTab === 'sales'
-                  ? 'bg-white text-blue-600 shadow-sm border border-slate-200/50'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50'
+                  : 'text-neutral-400 hover:text-neutral-600'
               }`}
             >
               <ShieldCheck size={14} />
               Sales
               {pendingSalesCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest animate-pulse bg-rose-600 text-white shadow-sm shadow-rose-200">
+                <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
                   {pendingSalesCount}
                 </span>
               )}
@@ -74,25 +91,57 @@ const ApprovalsPage: React.FC<ApprovalsPageProps> = (props) => {
           {canAccessPayments && (
             <button
               onClick={() => setActiveTab('payments')}
-              className={`flex items-center gap-2.5 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
+              className={`flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${
                 activeTab === 'payments'
-                  ? 'bg-white text-blue-600 shadow-sm border border-slate-200/50'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50'
+                  : 'text-neutral-400 hover:text-neutral-600'
               }`}
             >
               <CreditCard size={14} />
               Payments
               {pendingPaymentsCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest animate-pulse bg-rose-600 text-white shadow-sm shadow-rose-200">
+                <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
                   {pendingPaymentsCount}
                 </span>
               )}
             </button>
           )}
+        </div>
 
+        {/* Right Side: Status Sub-Tabs */}
+        <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm w-fit border border-neutral-200">
+          <button
+            onClick={() => setSubTab('approval')}
+            className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.25em] rounded-sm transition-all flex items-center gap-2 ${
+              subTab === 'approval' 
+                ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' 
+                : 'text-neutral-400 hover:text-neutral-600'
+            }`}
+          >
+            Pending Approval
+            {activeTab === 'sales' && pendingSalesCount > 0 && (
+              <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
+                {pendingSalesCount}
+              </span>
+            )}
+            {activeTab === 'payments' && pendingPaymentsCount > 0 && (
+              <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
+                {pendingPaymentsCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setSubTab('history')}
+            className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.25em] rounded-sm transition-all flex items-center gap-2 ${
+              subTab === 'history' 
+                ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' 
+                : 'text-neutral-400 hover:text-neutral-600'
+            }`}
+          >
+            Approval History
+          </button>
         </div>
       </div>
-
 
       <div className="min-h-[600px]">
         <AnimatePresence mode="wait">
@@ -112,6 +161,7 @@ const ApprovalsPage: React.FC<ApprovalsPageProps> = (props) => {
                 onBulkDeleteSales={props.onBulkDeleteSales}
                 userPermissions={props.userPermissions}
                 hideHeader={true}
+                externalActiveTab={subTab}
               />
             </motion.div>
           ) : activeTab === 'payments' && canAccessPayments ? (
@@ -130,6 +180,7 @@ const ApprovalsPage: React.FC<ApprovalsPageProps> = (props) => {
                 onBulkDeletePayments={props.onBulkDeletePayments}
                 userPermissions={props.userPermissions}
                 hideHeader={true}
+                externalActiveTab={subTab}
               />
             </motion.div>
           ) : (

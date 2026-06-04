@@ -18,16 +18,16 @@ const DeliveryRequestModal: React.FC<DeliveryRequestModalProps> = ({
   onSubmit,
 }) => {
   const [addressData, setAddressData] = useState({
-    street: '',
-    barangay: '',
-    city: '',
-    province: '',
-    zipCode: '',
-    landmark: '',
+    street: sale.deliveryRequest?.street || '',
+    barangay: sale.deliveryRequest?.barangay || '',
+    city: sale.deliveryRequest?.city || '',
+    province: sale.deliveryRequest?.province || '',
+    zipCode: sale.deliveryRequest?.zipCode || '',
+    landmark: sale.deliveryRequest?.landmark || '',
   });
-  const [date, setDate] = useState('');
-  const [extraPersons, setExtraPersons] = useState(0);
-  const [remarks, setRemarks] = useState('');
+  const [date, setDate] = useState(sale.deliveryRequest?.deliveryDate || '');
+  const [extraPersons, setExtraPersons] = useState(sale.deliveryRequest?.extraPersonnelCount || 0);
+  const [remarks, setRemarks] = useState(sale.deliveryRequest?.remarks || '');
 
   const isFormValid =
     addressData.street &&
@@ -35,6 +35,8 @@ const DeliveryRequestModal: React.FC<DeliveryRequestModalProps> = ({
     addressData.city &&
     addressData.province &&
     date;
+
+  const isAlreadyApproved = sale.deliveryRequest?.status === 'Approved';
 
   return (
     <div
@@ -161,7 +163,7 @@ const DeliveryRequestModal: React.FC<DeliveryRequestModalProps> = ({
             }
             className="px-12 py-4 bg-[#323130] text-white rounded-sm font-black uppercase tracking-[0.2em] text-[11px] hover:bg-black disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed transition-all shadow-xl shadow-black/10 flex items-center gap-3"
           >
-            <span>Request Delivery</span>
+            <span>{isAlreadyApproved ? 'Dispatch Delivery' : 'Request Delivery'}</span>
             <ChevronRight size={18} strokeWidth={3} />
           </button>
         </div>

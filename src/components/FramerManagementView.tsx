@@ -253,35 +253,34 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
     <div className="space-y-8 animate-in fade-in duration-500">
 
 
-      {/* Dashboard Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
+        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-amber-500">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">In Framing</h4>
-            <div className="p-2 bg-neutral-100 text-neutral-700 rounded-lg group-hover:scale-110 transition-transform">
-              <Wrench size={18} />
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
+              <Wrench size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:rotate-12" />
             </div>
           </div>
           <p className="text-3xl font-black text-neutral-900">{stats.total}</p>
           <p className="text-xs text-neutral-500 mt-1 font-medium">Active repairs</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
+        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-indigo-500">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Recent Sends</h4>
-            <div className="p-2 bg-neutral-100 text-neutral-700 rounded-lg group-hover:scale-110 transition-transform">
-              <Clock size={18} />
+            <div className="p-2 bg-indigo-50 text-indigo-500 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+              <Clock size={18} className="transition-all duration-700 group-hover:scale-115 group-hover:rotate-[360deg]" />
             </div>
           </div>
           <p className="text-3xl font-black text-neutral-900">{stats.recent}</p>
           <p className="text-xs text-neutral-500 mt-1 font-medium">Last 30 days</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
+        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-blue-500">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Top Branch</h4>
-            <div className="p-2 bg-neutral-100 text-neutral-700 rounded-lg group-hover:scale-110 transition-transform">
-              <MapPin size={18} />
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+              <MapPin size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:translate-y-[-2px]" />
             </div>
           </div>
           <p className="text-lg font-black text-neutral-900 line-clamp-1" title={stats.topBranch}>{stats.topBranch}</p>

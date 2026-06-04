@@ -170,7 +170,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
               Total Items (Current View)
             </span>
             <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4 transition-all duration-300 group-hover:scale-115 group-hover:rotate-12" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900">
@@ -192,7 +192,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
               Available Inventory
             </span>
             <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 transition-all duration-300 group-hover:scale-115 group-hover:-translate-y-0.5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900">
@@ -214,7 +214,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
               Reserved / In Transit
             </span>
             <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
-              <Clock className="w-4 h-4" />
+              <Clock className="w-4 h-4 transition-all duration-700 group-hover:scale-115 group-hover:rotate-[360deg]" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900">
@@ -236,7 +236,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
               Sold / Delivered
             </span>
             <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-              <ArrowRightLeft className="w-4 h-4" />
+              <ArrowRightLeft className="w-4 h-4 transition-all duration-300 group-hover:scale-115 group-hover:translate-x-0.5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900">

@@ -3,6 +3,7 @@ import { mapToSnakeCase } from '../utils/supabaseUtils';
 import { AppNotification } from '../types';
 import { IS_DEMO_MODE } from '../constants';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { generateUUID } from '../utils/idUtils';
 
 const generateId = () => generateUUID();
@@ -10,6 +11,7 @@ const MAX_NOTIFICATIONS = 500;
 
 export const useNotifications = () => {
   const { setNotifications } = useData();
+  const { currentUser } = useAuth();
 
   const pushNotification = (
     title: string, 
@@ -26,7 +28,9 @@ export const useNotifications = () => {
       isRead: false,
       type,
       artworkId,
-      items
+      items,
+      userName: currentUser?.name || undefined,
+      agent: currentUser?.branch || undefined
     };
 
     setNotifications(prev => {

@@ -200,10 +200,10 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
   };
 
   return (
-    <header className="h-16 bg-white border-b border-neutral-200 px-8 flex items-center justify-between relative z-50">
+    <header className="h-16 bg-white border-b border-neutral-200/80 px-8 flex items-center justify-between relative z-50">
       <div className="flex items-center space-x-3">
         <button
-          className="p-2 md:hidden rounded-lg text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors mr-2"
+          className="p-2 md:hidden rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors mr-2"
           onClick={onToggleMobileMenu}
         >
           <Menu size={24} />
@@ -211,19 +211,32 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
         {(activeTab !== 'dashboard' || historyStack.length > 0) && (
           <button
             onClick={onBackToDashboard}
-            className="p-2 rounded-full border border-neutral-200 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
-            title="Go Back"
+            className="group flex items-center justify-center p-1.5 rounded-md text-neutral-400 hover:bg-neutral-50 hover:text-neutral-900 transition-colors mr-1.5"
+            title="Back to Dashboard"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} className="transition-transform duration-200 group-hover:-translate-x-0.5" />
           </button>
         )}
-        <h2 className="text-lg font-semibold text-neutral-900 capitalize">
-          {activeTab.replace('-', ' ')}
+        <h2 className="text-xl font-light text-neutral-900 tracking-tight flex items-center gap-1.5 select-none capitalize">
+          {activeTab === 'dashboard' ? (
+            <>
+              System <span className="font-serif italic font-medium">Dashboard</span>
+            </>
+          ) : (
+            <>
+              {activeTab.split('-')[0]}{' '}
+              {activeTab.split('-').slice(1).map((word, i) => (
+                <span key={i} className="font-serif italic font-medium">
+                  {word}
+                </span>
+              ))}
+            </>
+          )}
         </h2>
       </div>
 
       <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 bg-neutral-50 px-3 py-1 rounded-md border border-neutral-200">
+        <div className="flex items-center space-x-2 bg-neutral-100 px-3 py-1 rounded-md border border-neutral-200">
           <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></div>
           <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">{userRole}</span>
         </div>
@@ -231,7 +244,7 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
         <div className="relative" ref={displayMenuRef}>
           <button
             onClick={() => setShowDisplayMenu(!showDisplayMenu)}
-            className={`p-2 rounded-md transition-all duration-150 ${showDisplayMenu ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50'}`}
+            className={`p-2 rounded-md transition-all duration-150 ${showDisplayMenu ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'}`}
             title="Display Settings"
           >
             <Monitor size={20} />
@@ -262,7 +275,7 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
           <div className="relative">
             <button
               onClick={onViewChat}
-              className={`relative p-2 rounded-full transition-all duration-200 hover:scale-105 transform ${activeTab === 'chat' ? 'bg-neutral-100 text-neutral-900 shadow-md' : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 hover:shadow-sm'}`}
+              className={`relative p-2 rounded-full transition-all duration-200 hover:scale-105 transform ${activeTab === 'chat' ? 'bg-neutral-100 text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'}`}
               title="Inbox"
             >
               {unreadChatCount > 0 && (
@@ -278,7 +291,7 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={toggleNotifications}
-            className={`relative p-2 rounded-full transition-all duration-200 hover:scale-105 transform ${showNotifications ? 'bg-neutral-100 text-neutral-900 shadow-md' : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 hover:shadow-sm'}`}
+            className={`relative p-2 rounded-full transition-all duration-200 hover:scale-105 transform ${showNotifications ? 'bg-neutral-100 text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'}`}
           >
             {unreadCount > 0 && (
               <div className="min-w-[18px] h-[18px] bg-red-600 rounded-full absolute -top-0.5 -right-0.5 border-2 border-white flex items-center justify-center">
@@ -348,9 +361,9 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center space-x-3 p-1 pr-3 rounded-full hover:bg-neutral-50 transition-colors"
+            className="flex items-center space-x-3 p-1 pr-3 rounded-full hover:bg-neutral-100 transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-neutral-900 flex items-center justify-center text-white text-[10px] font-black">
+            <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-white text-[10px] font-black">
               {(userName?.[0] || 'U').toUpperCase()}
             </div>
           </button>

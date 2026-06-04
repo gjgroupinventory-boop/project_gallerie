@@ -297,6 +297,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
   const [sizeFilter, setSizeFilter] = useState<string>('');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [metricFilter, setMetricFilter] = useState<'All' | 'Outstanding' | 'Fully Paid' | 'Awaiting Transit'>('All');
 
   const getPaymentSummary = (sale: SaleRecord, price: number) => {
     const downpayment = sale.downpayment || 0;
@@ -479,7 +480,27 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
     });
   }, [filteredSales, filteredArtworks]);
 
-  const hasActiveFilters = branchFilter !== 'All' || artistFilter !== 'All' || clientFilter !== 'All' || mediumFilter !== 'All' || yearFilter !== 'All' || monthFilter !== 'All' || paymentTypeFilter !== 'All' || sizeFilter !== '' || searchTerm !== '';
+  const displayedSales = useMemo(() => {
+    if (metricFilter === 'All') return filteredSales;
+    return filteredSales.filter(sale => {
+      const art = filteredArtworks.find(a => a.id === sale.artworkId) || (sale.artworkSnapshot as Artwork);
+      const price = art?.price || 0;
+      const { balance, isFullyPaid } = getPaymentSummary(sale, price);
+
+      if (metricFilter === 'Outstanding') {
+        return balance > 0.01;
+      }
+      if (metricFilter === 'Fully Paid') {
+        return isFullyPaid;
+      }
+      if (metricFilter === 'Awaiting Transit') {
+        return !sale.isDelivered && !sale.isCancelled;
+      }
+      return true;
+    });
+  }, [filteredSales, metricFilter, filteredArtworks]);
+
+  const hasActiveFilters = branchFilter !== 'All' || artistFilter !== 'All' || clientFilter !== 'All' || mediumFilter !== 'All' || yearFilter !== 'All' || monthFilter !== 'All' || paymentTypeFilter !== 'All' || sizeFilter !== '' || searchTerm !== '' || metricFilter !== 'All';
 
   const clearFilters = () => {
     setBranchFilter('All');
@@ -491,13 +512,14 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
     setPaymentTypeFilter('All');
     setSizeFilter('');
     setSearchTerm('');
+    setMetricFilter('All');
   };
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
   const selectAll = () => {
-    if (selectedIds.length === filteredSales.length) setSelectedIds([]);
-    else setSelectedIds(filteredSales.map(s => s.id));
+    if (selectedIds.length === displayedSales.length) setSelectedIds([]);
+    else setSelectedIds(displayedSales.map(s => s.id));
   };
 
   const exportSales = () => {
@@ -547,19 +569,28 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
 
   return (
     <div className="space-y-6 pb-10">
-      <div className="flex flex-col gap-6">
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-5">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-1">Sales History</p>
-          <h1 className="text-3xl font-black text-neutral-950 tracking-tight">Sales Ledger</h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            {filteredSales.length.toLocaleString()} of {allSales.length.toLocaleString()} finalized records shown.
+      {/* Elegant Header Card */}
+      <div className="bg-neutral-950 border border-neutral-900 p-6 rounded-md shadow-sm relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+        {/* Background decorative watermark */}
+        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-white/5 select-none pointer-events-none leading-none -mb-4">
+          SALES
+        </div>
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span>Sales History</span>
+          </div>
+          <h1 className="text-3xl font-light text-white tracking-tight leading-tight">
+            Sales <span className="font-serif italic text-white font-medium">Ledger</span>
+          </h1>
+          <p className="text-xs text-neutral-400 font-medium leading-relaxed">
+            {displayedSales.length.toLocaleString()} of {allSales.length.toLocaleString()} finalized records shown.
           </p>
         </div>
         {canExport && (
           <button 
             onClick={exportSales}
-            className="inline-flex items-center justify-center gap-2 bg-neutral-950 border border-neutral-950 text-white px-5 py-3 rounded-sm hover:bg-neutral-800 transition-all shadow-sm font-black text-xs uppercase tracking-widest"
+            className="relative z-10 inline-flex items-center justify-center gap-2 bg-white border border-white text-neutral-950 px-5 py-3 rounded-sm hover:bg-neutral-100 transition-all shadow-sm font-black text-xs uppercase tracking-widest shrink-0 self-start md:self-center"
           >
             <Download size={15} />
             <span>Export CSV</span>
@@ -569,23 +600,40 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
         {[
-          { label: 'Gross Sales', value: `₱${ledgerMetrics.totalValue.toLocaleString()}`, icon: ReceiptText, tone: 'text-neutral-950', sub: 'Filtered ledger value' },
-          { label: 'Collected', value: `₱${ledgerMetrics.totalPaid.toLocaleString()}`, icon: WalletCards, tone: 'text-emerald-700', sub: 'Approved payments' },
-          { label: 'Outstanding', value: `₱${ledgerMetrics.outstanding.toLocaleString()}`, icon: AlertTriangle, tone: ledgerMetrics.outstanding > 0 ? 'text-red-700' : 'text-neutral-950', sub: 'Remaining balance' },
-          { label: 'Fully Paid', value: ledgerMetrics.fullyPaid.toLocaleString(), icon: CheckCircle2, tone: 'text-emerald-700', sub: `${ledgerMetrics.installments} installment sale${ledgerMetrics.installments === 1 ? '' : 's'}` },
-          { label: 'Awaiting Transit', value: ledgerMetrics.awaitingTransit.toLocaleString(), icon: Truck, tone: 'text-amber-700', sub: 'Sold, not delivered' }
-        ].map(metric => (
-          <div key={metric.label} className="rounded-sm border border-neutral-200 bg-white px-4 py-3 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{metric.label}</p>
-                <p className={`mt-1 text-xl font-black leading-none ${metric.tone}`}>{metric.value}</p>
+          { label: 'Gross Sales', value: `₱${ledgerMetrics.totalValue.toLocaleString()}`, icon: ReceiptText, tone: 'text-neutral-950', sub: 'Filtered ledger value', key: 'All' },
+          { label: 'Collected', value: `₱${ledgerMetrics.totalPaid.toLocaleString()}`, icon: WalletCards, tone: 'text-emerald-700', sub: 'Approved payments', key: 'All' },
+          { label: 'Outstanding', value: `₱${ledgerMetrics.outstanding.toLocaleString()}`, icon: AlertTriangle, tone: ledgerMetrics.outstanding > 0 ? 'text-red-700' : 'text-neutral-950', sub: 'Remaining balance', key: 'Outstanding' },
+          { label: 'Fully Paid', value: ledgerMetrics.fullyPaid.toLocaleString(), icon: CheckCircle2, tone: 'text-emerald-700', sub: `${ledgerMetrics.installments} installment sale${ledgerMetrics.installments === 1 ? '' : 's'}`, key: 'Fully Paid' },
+          { label: 'Awaiting Transit', value: ledgerMetrics.awaitingTransit.toLocaleString(), icon: Truck, tone: 'text-amber-700', sub: 'Sold, not delivered', key: 'Awaiting Transit' }
+        ].map(metric => {
+          const isActive = metric.key !== 'All' && metricFilter === metric.key;
+          return (
+            <div 
+              key={metric.label} 
+              onClick={() => {
+                if (metric.key === 'All') {
+                  setMetricFilter('All');
+                } else {
+                  setMetricFilter(prev => prev === metric.key ? 'All' : (metric.key as any));
+                }
+              }}
+              className={`rounded-sm border px-4 py-3 shadow-sm cursor-pointer hover:border-neutral-400 hover:shadow-md transition-all select-none ${
+                isActive 
+                  ? 'border-neutral-950 bg-neutral-50 ring-1 ring-neutral-950' 
+                  : 'border-neutral-200 bg-white'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{metric.label}</p>
+                  <p className={`mt-1 text-xl font-black leading-none ${metric.tone}`}>{metric.value}</p>
+                </div>
+                <metric.icon size={18} className="text-neutral-400" />
               </div>
-              <metric.icon size={18} className="text-neutral-400" />
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-neutral-400">{metric.sub}</p>
             </div>
-            <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-neutral-400">{metric.sub}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Filters Bar */}
@@ -712,7 +760,6 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
           </div>
         </div>
       </div>
-    </div>
 
       <div className="bg-white rounded-md border border-neutral-200 shadow-sm overflow-hidden">
         <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-310px)]">
@@ -720,7 +767,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
           <thead>
             <tr className="bg-neutral-50/95 backdrop-blur border-b border-neutral-100 sticky top-0 z-10">
               <th className="px-6 py-4">
-                {canDelete && <input type="checkbox" checked={selectedIds.length === filteredSales.length && filteredSales.length > 0} onChange={selectAll} />}
+                {canDelete && <input type="checkbox" checked={selectedIds.length === displayedSales.length && displayedSales.length > 0} onChange={selectAll} />}
               </th>
               <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Artwork</th>
               <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Client</th>
@@ -734,7 +781,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
-            {filteredSales.map((sale) => {
+            {displayedSales.map((sale) => {
               const art = filteredArtworks.find(a => a.id === sale.artworkId);
               // Fallback to snapshot if artwork is deleted
               const displayArt = art || (sale.artworkSnapshot ? {
@@ -889,7 +936,7 @@ const SalesRecordPage: React.FC<SalesRecordPageProps> = ({
         {/* Mobile Card View */}
         <div className="md:hidden">
           <div className="divide-y divide-neutral-100">
-            {filteredSales.map((sale) => {
+            {displayedSales.map((sale) => {
               const art = filteredArtworks.find(a => a.id === sale.artworkId);
               const displayArt = art || (sale.artworkSnapshot ? {
                 id: sale.artworkId,

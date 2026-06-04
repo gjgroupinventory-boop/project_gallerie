@@ -46,6 +46,7 @@ export const useArtworkOperations = () => {
     handleApproveDeliveryRequest: sales.handleApproveDeliveryRequest,
     handleDeclineDeliveryRequest: sales.handleDeclineDeliveryRequest,
     handleDeliver: sales.handleDeliver,
+    handleBulkDeletePayments: sales.handleBulkDeletePayments,
 
     // Framing
     handleSendToFramer: framing.handleSendToFramer,

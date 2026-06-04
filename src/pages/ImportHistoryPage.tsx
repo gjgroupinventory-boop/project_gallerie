@@ -488,7 +488,9 @@ const ImportHistoryPage: React.FC<ImportHistoryPageProps> = ({ logs, preventDupl
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-h-[88px]">
           <>
             <div>
-              <h1 className="text-2xl font-black text-neutral-900 tracking-tight">Import History</h1>
+              <h1 className="text-2xl font-light text-neutral-900 tracking-tight leading-tight">
+                Import <span className="font-serif italic text-neutral-900 font-medium">History</span>
+              </h1>
               <p className="text-sm text-neutral-500">Track all Excel/CSV file imports and their status.</p>
             </div>
 
@@ -520,29 +522,31 @@ const ImportHistoryPage: React.FC<ImportHistoryPageProps> = ({ logs, preventDupl
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => exportImportLogs()}
-                  className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
-                  title="Export as CSV"
-                >
-                  <Download size={18} />
-                </button>
-                <button
-                  onClick={handleExportPDF}
-                  className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
-                  title="Export as PDF"
-                >
-                  <FileText size={18} />
-                </button>
-                <button
-                  onClick={handleExportImage}
-                  className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
-                  title="Export as Image"
-                >
-                  <ImageIcon size={18} />
-                </button>
-              </div>
+              {userPermissions?.canExportArtwork && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => exportImportLogs()}
+                    className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
+                    title="Export as CSV"
+                  >
+                    <Download size={18} />
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
+                    title="Export as PDF"
+                  >
+                    <FileText size={18} />
+                  </button>
+                  <button
+                    onClick={handleExportImage}
+                    className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
+                    title="Export as Image"
+                  >
+                    <ImageIcon size={18} />
+                  </button>
+                </div>
+              )}
             </div>
           </>
       </div>
@@ -570,16 +574,18 @@ const ImportHistoryPage: React.FC<ImportHistoryPageProps> = ({ logs, preventDupl
               <span>Compare</span>
             </button>
           )}
-          <button
-            onClick={() => {
-              const logsToExport = logs.filter(l => selectedLogs.has(l.id));
-              exportImportLogs(logsToExport);
-            }}
-            className="bg-neutral-50 hover:bg-neutral-100 text-neutral-900 border border-neutral-200/60 px-5 py-2.5 rounded-md text-sm font-bold transition-all shadow-sm transform active:scale-95 flex items-center gap-2"
-          >
-            <Download size={14} />
-            <span>Export</span>
-          </button>
+          {userPermissions?.canExportArtwork && (
+            <button
+              onClick={() => {
+                const logsToExport = logs.filter(l => selectedLogs.has(l.id));
+                exportImportLogs(logsToExport);
+              }}
+              className="bg-neutral-50 hover:bg-neutral-100 text-neutral-900 border border-neutral-200/60 px-5 py-2.5 rounded-md text-sm font-bold transition-all shadow-sm transform active:scale-95 flex items-center gap-2"
+            >
+              <Download size={14} />
+              <span>Export</span>
+            </button>
+          )}
           <button
             onClick={() => {
               if (window.confirm(`Delete ${selectedLogs.size} logs? This action cannot be undone.`)) {

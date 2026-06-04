@@ -843,13 +843,15 @@ const MonitoringSummaryPage: React.FC<MonitoringSummaryPageProps> = ({
                         )}
                       </>
                     )}
-                    <div className="print:hidden">
-                      <ExportDropdown
-                        onExportExcel={handleExportExcel}
-                        onExportPDF={handleExportPDF}
-                        onExportImage={handleExportImage}
-                      />
-                    </div>
+                    {propPermissions?.canExportArtwork && (
+                      <div className="print:hidden">
+                        <ExportDropdown
+                          onExportExcel={handleExportExcel}
+                          onExportPDF={handleExportPDF}
+                          onExportImage={handleExportImage}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

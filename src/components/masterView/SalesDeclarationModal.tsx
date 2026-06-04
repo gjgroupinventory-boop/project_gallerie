@@ -262,7 +262,7 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
               onClick={() => setActiveSaleAttachmentTab('itdr')}
               className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${activeSaleAttachmentTab === 'itdr' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-400'}`}
             >
-              IT/DR {saleDelivered && <span className="text-red-500 ml-1">*</span>}
+              IT/DR
             </button>
             <button
               onClick={() => setActiveSaleAttachmentTab('rsa')}
@@ -383,7 +383,7 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
           <button onClick={onClose} className="px-6 py-2.5 rounded-md text-neutral-600 font-bold hover:bg-neutral-100 transition-all transform hover:-translate-y-0.5">Cancel</button>
           <button
             onClick={() => {
-              if (clientName && clientContact && saleRsa.length > 0 && (!saleDelivered || saleItdr.length > 0) && saleRemarks.trim() && handlingAgentName.trim()) {
+              if (clientName && clientContact && saleRsa.length > 0 && saleRemarks.trim() && handlingAgentName.trim()) {
                 wrapAction(async () => {
                   const selectedEvent = events.find(e => e.id === saleEventId);
                   const eventInfo = selectedEvent ? { id: selectedEvent.id, name: selectedEvent.title } : undefined;
@@ -409,11 +409,11 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
                     pct > 0 ? discountedPrice : undefined
                   );
                   onClose();
-                }, 'Processing Sale...', ArtworkStatus.SOLD);
+                }, 'Processing Sale...', saleDelivered ? ArtworkStatus.DELIVERED : ArtworkStatus.SOLD);
               }
             }}
             className="px-8 py-2.5 bg-neutral-900 text-white rounded-md font-bold shadow-lg shadow-neutral-200 hover:shadow-neutral-300 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!clientName || !clientContact || saleRsa.length === 0 || (saleDelivered && saleItdr.length === 0) || !saleRemarks.trim() || !handlingAgentName.trim()}
+            disabled={!clientName || !clientContact || saleRsa.length === 0 || !saleRemarks.trim() || !handlingAgentName.trim()}
           >
             Confirm Sale
           </button>

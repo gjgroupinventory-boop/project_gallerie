@@ -16,6 +16,7 @@ interface SalesApprovalPageProps {
   onBulkDeleteSales?: (ids: string[]) => void;
   userPermissions?: UserPermissions;
   hideHeader?: boolean;
+  externalActiveTab?: 'approval' | 'history';
 }
 
 const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({ 
@@ -25,9 +26,16 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
   onDeclineSale, 
   onBulkDeleteSales,
   userPermissions,
-  hideHeader
+  hideHeader,
+  externalActiveTab
 }) => {
   const [activeTab, setActiveTab] = useState<'approval' | 'history'>('approval');
+
+  useEffect(() => {
+    if (externalActiveTab) {
+      setActiveTab(externalActiveTab);
+    }
+  }, [externalActiveTab]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedBranch, setSelectedBranch] = useState<string>('All');
   const [selectedHistoryIds, setSelectedHistoryIds] = useState<string[]>([]);
@@ -746,7 +754,7 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
         </div>
       )}
 
-      {hideHeader && (
+      {hideHeader && !externalActiveTab && (
           <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm w-fit border border-neutral-200 mb-8">
             <button
               onClick={() => setActiveTab('approval')}
@@ -778,19 +786,6 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            {/* Approval Notice Banner */}
-            <div className="bg-[#FFF4CE] border border-[#FED9CC] rounded-sm p-5 flex items-start gap-4 shadow-sm">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-[#794500] text-white">
-                  <ShieldCheck size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-[#794500] uppercase tracking-tight">Status: Pending Administrative Approval</h4>
-                  <p className="text-xs text-[#794500] mt-1 leading-relaxed max-w-2xl">
-                    This declaration is currently in the verification queue. The sale will only be committed to the ledger once an administrator approves the transaction and verifies the payment details.
-                  </p>
-                </div>
-              </div>
-
               {pendingSales.length === 0 ? (
               <div className="py-24 bg-neutral-50 rounded-sm border border-dashed border-neutral-200 flex flex-col items-center justify-center text-neutral-300 gap-4">
                 <ShieldCheck size={56} strokeWidth={1} />
@@ -802,7 +797,7 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
             ) : (
               <div className="flex flex-col gap-6">
                 {/* Search and Filters Toolbar */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-100/50 p-4 rounded-xl border border-slate-200/60 backdrop-blur-sm shadow-sm">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-md border border-neutral-200 shadow-sm">
                   <div className="relative flex-1 max-w-md w-full">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input

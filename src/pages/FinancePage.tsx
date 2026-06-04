@@ -474,12 +474,28 @@ const FinancePage: React.FC = () => {
 
   const renderDashboard = () => (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header & Main Filters */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-neutral-900">Finance Control</h1>
-          <p className="text-neutral-500 mt-1 font-medium">Real-time revenue monitoring and fiscal projections.</p>
+      {/* Header Card */}
+      <div className="bg-neutral-950 border border-neutral-900 p-6 rounded-md shadow-sm relative overflow-hidden">
+        {/* Background decorative watermark */}
+        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-white/5 select-none pointer-events-none leading-none -mb-4">
+          FINANCE
         </div>
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span>Fiscal Audit</span>
+          </div>
+          <h1 className="text-3xl font-serif italic text-white font-medium tracking-tight leading-tight">
+            Finance Control
+          </h1>
+          <p className="text-xs text-neutral-400 font-serif italic leading-relaxed">
+            Real-time revenue monitoring and fiscal projections.
+          </p>
+        </div>
+      </div>
+
+      {/* Main Filters Controls Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-6 mt-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200 relative isolate">
             {(['day', 'week', 'month', 'year', 'specific'] as TimeFilter[]).map(f => {
@@ -1798,7 +1814,7 @@ const FinancePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto py-10 px-6 md:px-10 pb-24">
+    <div className="max-w-[1600px] mx-auto py-10 px-6 md:px-10 pb-24">
       {selectedInstallmentId && selectedSale ? (
         renderInstallmentDetail(selectedSale)
       ) : (
