@@ -59,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole, us
     { id: 'approvals', label: 'Finance Approval', icon: <ShieldCheck />, groupId: 'sales' },
     { id: 'requests', label: 'My Requests', icon: <MessageSquare />, groupId: 'sales' },
     { id: 'sales-history', label: 'Sales History', icon: ICONS.Sales, groupId: 'sales' },
-    { id: 'deliveries', label: 'Delivery Approval', icon: ICONS.Truck, groupId: 'inventory' },
+    { id: 'deliveries', label: 'Delivery Management', icon: ICONS.Truck, groupId: 'inventory' },
     { id: 'operations', label: 'Gallery Operations', icon: <Settings2 />, groupId: 'management' },
     { id: 'accounts', label: 'Branch Accounts', icon: ICONS.Users, groupId: 'management' },
     { id: 'audit-logs', label: 'System Audit Logs', icon: <ShieldEllipsis />, groupId: 'logs' },

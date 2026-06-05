@@ -42,7 +42,7 @@ export const APP_TABS = [
   { id: 'snapshots', label: 'Artwork Timeline' },
   { id: 'operations', label: 'Gallery Operations' },
   { id: 'sales-history', label: 'Sales History' },
-  { id: 'deliveries', label: 'Delivery Approval' },
+  { id: 'deliveries', label: 'Delivery Management' },
   { id: 'artwork-transfer', label: 'Artwork T/R' },
   { id: 'audit-logs', label: 'System Audit Logs' },
   { id: 'accounts', label: 'Branch Accounts' },
