@@ -226,13 +226,28 @@ export const useArtworkSales = () => {
       return false;
     }
 
-    const { discountPercentage: _ignoredPct, discountedPrice: _ignoredDp, ...persistedSale } = newSale;
     const serializedSale = {
-      ...persistedSale,
+      id: newSale.id,
+      artworkId: newSale.artworkId,
+      clientName: newSale.clientName,
+      clientEmail: newSale.clientEmail || null,
+      clientContact: newSale.clientContact || null,
+      agentName: newSale.agentName,
+      agentId: newSale.agentId || null,
+      saleDate: newSale.saleDate,
+      deliveryDate: newSale.deliveryDate || null,
+      isDelivered: !!newSale.isDelivered,
+      isCancelled: !!newSale.isCancelled,
+      status: newSale.status || null,
+      soldAtEventId: newSale.soldAtEventId || null,
+      soldAtEventName: newSale.soldAtEventName || null,
+      downpayment: newSale.downpayment || 0,
+      isDownpayment: !!newSale.isDownpayment,
+      installments: newSale.installments ? JSON.stringify(newSale.installments) : '[]',
+      artworkSnapshot: newSale.artworkSnapshot ? JSON.stringify(newSale.artworkSnapshot) : null,
       itdrUrl: secureItdr && secureItdr.length > 0 ? JSON.stringify(secureItdr) : null,
       rsaUrl: secureRsa && secureRsa.length > 0 ? JSON.stringify(secureRsa) : null,
       orCrUrl: secureOrcr && secureOrcr.length > 0 ? JSON.stringify(secureOrcr) : null,
-      artworkSnapshot: persistedSale.artworkSnapshot ? JSON.stringify(persistedSale.artworkSnapshot) : null
     };
     const { error } = await supabase.from('sales').insert(mapToSnakeCase(serializedSale));
     if (error) {
@@ -262,7 +277,7 @@ export const useArtworkSales = () => {
   const handleBulkSale = async (
     ids: string[],
     client: string,
-    delivered: boolean,
+    delivered: boolean | Record<string, boolean>,
     eventInfo?: any,
     attachments?: any,
     downpayment?: number,
@@ -329,11 +344,27 @@ export const useArtworkSales = () => {
     }
 
     const persistedSales = processedNewSales.map((sale) => ({
-      ...sale,
+      id: sale.id,
+      artworkId: sale.artworkId,
+      clientName: sale.clientName,
+      clientEmail: sale.clientEmail || null,
+      clientContact: sale.clientContact || null,
+      agentName: sale.agentName,
+      agentId: sale.agentId || null,
+      saleDate: sale.saleDate,
+      deliveryDate: sale.deliveryDate || null,
+      isDelivered: !!sale.isDelivered,
+      isCancelled: !!sale.isCancelled,
+      status: sale.status || null,
+      soldAtEventId: sale.soldAtEventId || null,
+      soldAtEventName: sale.soldAtEventName || null,
+      downpayment: sale.downpayment || 0,
+      isDownpayment: !!sale.isDownpayment,
+      installments: sale.installments ? JSON.stringify(sale.installments) : '[]',
+      artworkSnapshot: sale.artworkSnapshot ? JSON.stringify(sale.artworkSnapshot) : null,
       itdrUrl: sale.itdrUrl && sale.itdrUrl.length > 0 ? JSON.stringify(sale.itdrUrl) : null,
       rsaUrl: sale.rsaUrl && sale.rsaUrl.length > 0 ? JSON.stringify(sale.rsaUrl) : null,
       orCrUrl: sale.orCrUrl && sale.orCrUrl.length > 0 ? JSON.stringify(sale.orCrUrl) : null,
-      artworkSnapshot: sale.artworkSnapshot ? JSON.stringify(sale.artworkSnapshot) : null
     }));
     
     const { error: saleError } = await supabase.from('sales').insert(mapToSnakeCase(persistedSales));
@@ -341,6 +372,21 @@ export const useArtworkSales = () => {
       console.error('Bulk Sale Record Error:', saleError);
       setArtworks(previousArtworks);
       setSales(prev => prev.filter(s => !newSales.some(ns => ns.id === s.id)));
+      
+      // Revert database status of artworks back to their previous status
+      await Promise.all(ids.map(async (id) => {
+        const prevArt = previousArtworks.find(a => String(a.id) === String(id));
+        if (prevArt) {
+          await supabase.from('artworks').update(mapToSnakeCase({
+            status: prevArt.status,
+            soldAtBranch: prevArt.soldAtBranch ?? null,
+            reservedForEventId: prevArt.reservedForEventId ?? null,
+            reservedForEventName: prevArt.reservedForEventName ?? null,
+            remarks: prevArt.remarks ?? null
+          })).eq('id', id);
+        }
+      }));
+
       pushNotification('Bulk Sale Record Failed', 'Artwork statuses updated but sales records failed.', 'system');
       return false;
     }
@@ -953,14 +999,23 @@ export const useArtworkSales = () => {
     const sale = sales.find(s => s.id === saleId);
     if (!sale || !sale.deliveryRequest) return false;
 
+    const nowStr = new Date().toISOString();
     const updatedRequest: DeliveryRequest = {
       ...sale.deliveryRequest,
-      status: DeliveryRequestStatus.APPROVED,
-      approvedAt: new Date().toISOString(),
-      approvedBy: currentUser?.name || 'Admin'
+      status: DeliveryRequestStatus.DISPATCHED,
+      approvedAt: nowStr,
+      approvedBy: currentUser?.name || 'Admin',
+      dispatchedAt: nowStr,
+      dispatchedBy: currentUser?.name || 'Admin'
     };
 
     const success = await handleUpdateSale(saleId, { deliveryRequest: updatedRequest });
+    
+    if (success) {
+      const art = artworks.find(a => String(a.id) === String(sale.artworkId));
+      logActivity(sale.artworkId, 'Dispatched', `Delivery request approved. Item is out for delivery to ${sale.clientName}.${remarks ? ` Remarks: ${remarks}` : ''}`, art);
+    }
+
     return success;
   };
 

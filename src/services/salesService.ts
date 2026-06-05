@@ -41,7 +41,7 @@ export const buildBulkSale = (
   clientEmail: string | undefined,
   clientContact: string | undefined,
   agentName: string,
-  delivered: boolean,
+  delivered: boolean | Record<string, boolean>,
   eventInfo?: { id: string; name: string },
   attachments?: {
     itdrUrl?: string | string[];
@@ -120,6 +120,10 @@ export const buildBulkSale = (
       itemDownpayment = 0;
     }
 
+    const isDelivered = typeof delivered === 'object' && delivered !== null
+      ? !!delivered[id]
+      : !!delivered;
+
     return {
       id: generateUUID(),
       artworkId: id,
@@ -130,8 +134,8 @@ export const buildBulkSale = (
       agentId,
       saleDate: now,
       status: SaleStatus.FOR_SALE_APPROVAL,
-      isDelivered: delivered,
-      deliveryDate: delivered ? now : undefined,
+      isDelivered: isDelivered,
+      deliveryDate: isDelivered ? now : undefined,
       soldAtEventId: eventInfo?.id,
       soldAtEventName: eventInfo?.name,
       itdrUrl: normalizedItdrUrls,

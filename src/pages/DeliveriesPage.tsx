@@ -97,6 +97,10 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
   }, []);
 
   useEffect(() => {
+    setSelectedClientId('All');
+  }, [activeTab]);
+
+  useEffect(() => {
     sales.forEach(sale => {
       if (sale.status !== SaleStatus.APPROVED || sale.isCancelled || sale.isDelivered) return;
       if (!sale.deliveryRequest?.rescheduledAt) return;

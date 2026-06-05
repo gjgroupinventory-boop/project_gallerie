@@ -325,7 +325,7 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 p-1">
         {filteredRecords.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-24 text-neutral-400 bg-white rounded-3xl border border-dashed border-neutral-200">
             <Wrench size={48} className="mb-4 opacity-20" />
@@ -379,19 +379,30 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
                   </div>
                 </div>
 
-                <div className="p-5 flex-1 flex flex-col">
-                  <div className="mb-3 space-y-1">
-                    <span className="text-[10px] font-bold text-neutral-400 tracking-wider uppercase">{record.artworkSnapshot.code}</span>
-                    <h4 className="text-lg font-bold text-neutral-900 leading-tight line-clamp-1 group-hover:text-neutral-600 transition-colors">{record.artworkSnapshot.title}</h4>
-                    <p className="text-sm text-neutral-500 font-medium">by {record.artworkSnapshot.artist}</p>
+                <div className="p-4 flex-1 flex flex-col">
+                  <div className="mb-2 space-y-0.5">
+                    <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase">{record.artworkSnapshot.code}</span>
+                    <h4 className="text-sm font-bold text-slate-800 leading-snug line-clamp-1 group-hover:text-blue-600 transition-colors uppercase">{record.artworkSnapshot.title}</h4>
+                    <p className="text-[11px] text-slate-500 font-medium">by {record.artworkSnapshot.artist}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {record.artworkSnapshot.year && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                          {record.artworkSnapshot.year}
+                        </span>
+                      )}
+                      {record.artworkSnapshot.medium && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[9px] font-bold uppercase tracking-widest text-blue-600 truncate max-w-[120px]" title={record.artworkSnapshot.medium}>
+                          {record.artworkSnapshot.medium}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-neutral-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-neutral-500 font-medium px-2 py-1 bg-neutral-50 rounded-md">
-                        {new Date(record.sentDate).toLocaleDateString()}
-                      </span>
-                    </div>
+                  <div className="mt-auto pt-3 flex items-center justify-between border-t border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Sent Date</span>
+                    <span className="text-xs font-bold text-slate-900 shrink-0 bg-neutral-50 border border-slate-200 px-2 py-0.5 rounded">
+                      {new Date(record.sentDate).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>

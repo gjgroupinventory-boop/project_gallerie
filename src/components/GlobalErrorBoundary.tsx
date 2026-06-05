@@ -8,12 +8,14 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  isChunkLoadFailed?: boolean;
 }
 
 class GlobalErrorBoundary extends Component<Props, State> {
   override state: State = {
     hasError: false,
-    error: null
+    error: null,
+    isChunkLoadFailed: false
   };
 
   constructor(props: Props) {
@@ -21,18 +23,17 @@ class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    const errorStr = String(error?.message || error).toLowerCase();
+    const isChunkLoadFailed = errorStr.includes('failed to fetch dynamically imported module') || 
+                              errorStr.includes('loading chunk') ||
+                              errorStr.includes('dynamically imported');
+    return { hasError: true, error, isChunkLoadFailed };
   }
 
   public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     
-    const errorStr = String(error?.message || error).toLowerCase();
-    const isChunkLoadFailed = errorStr.includes('failed to fetch dynamically imported module') || 
-                              errorStr.includes('loading chunk') ||
-                              errorStr.includes('dynamically imported');
-
-    if (isChunkLoadFailed) {
+    if (this.state.isChunkLoadFailed) {
       const now = Date.now();
       const lastReloadRaw = sessionStorage.getItem('artisflow-chunk-reload-timestamp');
       const lastReload = lastReloadRaw ? Number(lastReloadRaw) : 0;
@@ -70,6 +71,28 @@ class GlobalErrorBoundary extends Component<Props, State> {
 
   public override render() {
     if (this.state.hasError) {
+      if (this.state.isChunkLoadFailed) {
+        return (
+          <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center p-6 z-[9999]">
+            <div className="text-center space-y-6 max-w-sm px-6 animate-in fade-in duration-300">
+              <div className="relative w-16 h-16 mx-auto">
+                {/* Modern premium spinner */}
+                <div className="absolute inset-0 rounded-full border-[3px] border-neutral-800"></div>
+                <div className="absolute inset-0 rounded-full border-[3px] border-t-white animate-spin"></div>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-sm font-black text-white uppercase tracking-[0.2em]">
+                  Synchronizing Workspace
+                </h2>
+                <p className="text-neutral-400 text-xs font-semibold leading-relaxed">
+                  A new secure workspace update is ready. Downloading updated components...
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="fixed inset-0 bg-neutral-50 flex items-center justify-center p-6 z-[9999]">
           <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full p-10 border border-neutral-100 text-center animate-in zoom-in-95 duration-300">

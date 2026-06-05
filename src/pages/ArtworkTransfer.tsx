@@ -164,20 +164,20 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
 
   return (
     <div className="p-4 sm:p-8 space-y-6">
-      <div className="bg-[#FAF9F5] border border-neutral-200 p-6 rounded-md shadow-sm relative overflow-hidden">
+      <div className="bg-neutral-950 border border-neutral-900 p-6 rounded-md shadow-sm relative overflow-hidden">
         {/* Background decorative watermark */}
-        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-neutral-900/5 select-none pointer-events-none leading-none -mb-4">
+        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-white/[0.03] select-none pointer-events-none leading-none -mb-4">
           TRANSFER
         </div>
         <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-450">
-            <span className="w-1.5 h-1.5 rounded-full bg-neutral-900" />
+          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
             <span>Curatorial Log</span>
           </div>
-          <h1 className="text-3xl font-light text-neutral-900 tracking-tight leading-tight">
-            Artwork <span className="font-serif italic text-neutral-900 font-medium">Transfer Management</span>
+          <h1 className="text-3xl font-light text-white tracking-tight leading-tight">
+            Artwork <span className="font-serif italic text-white font-medium">Transfer Management</span>
           </h1>
-          <p className="text-xs text-neutral-500 font-medium leading-relaxed">
+          <p className="text-xs text-neutral-400 font-medium leading-relaxed">
             Manage pending transfers, route verifications, and branch collection logistics.
           </p>
         </div>

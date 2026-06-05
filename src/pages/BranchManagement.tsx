@@ -27,7 +27,7 @@ interface BranchManagementProps {
   onUpdateBranchAddress?: (name: string, address: string) => void;
   onViewArtwork?: (id: string) => void;
   events?: ExhibitionEvent[];
-  onBulkSale?: (ids: string[], client: string, delivered: boolean, eventInfo?: { id: string; name: string }, attachments?: { itdrUrl?: string[]; rsaUrl?: string[]; orCrUrl?: string[] }, totalDownpayment?: number, clientEmail?: string, clientContact?: string, perArtworkDownpayments?: Record<string, number>, installmentsEnabled?: boolean, discountPercentage?: Record<string, number> | number, remarks?: string) => void;
+  onBulkSale?: (ids: string[], client: string, delivered: boolean | Record<string, boolean>, eventInfo?: { id: string; name: string }, attachments?: { itdrUrl?: string[]; rsaUrl?: string[]; orCrUrl?: string[] }, totalDownpayment?: number, clientEmail?: string, clientContact?: string, perArtworkDownpayments?: Record<string, number>, installmentsEnabled?: boolean, discountPercentage?: Record<string, number> | number, remarks?: string) => void;
   onBulkReserve?: (ids: string[], details: string, expiryDate?: string, eventId?: string, eventName?: string) => void;
   onBulkTransferRequest?: (ids: string[], targetBranch: string, attachments?: { itdrUrl?: string }) => void;
   onBulkDeleteArtworks?: (ids: string[]) => void;
@@ -163,7 +163,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
   const [bulkDownpayment, setBulkDownpayment] = useState('');
   const [bulkSaleDownpayments, setBulkSaleDownpayments] = useState<Record<string, string>>({});
   const [bulkSaleInstallmentsEnabled, setBulkSaleInstallmentsEnabled] = useState<Record<string, boolean>>({});
-  const [bulkActionExtra, setBulkActionExtra] = useState(false);
+  const [bulkSaleHandedOver, setBulkSaleHandedOver] = useState<Record<string, boolean>>({});
   const [bulkSaleEventId, setBulkSaleEventId] = useState('');
   const [bulkTempItdr, setBulkTempItdr] = useState<string | string[] | null>(null);
   const [bulkTempRsa, setBulkTempRsa] = useState<string | string[] | null>(null);
@@ -483,7 +483,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
     setBulkDownpayment('');
     setBulkSaleDownpayments({});
     setBulkSaleInstallmentsEnabled({});
-    setBulkActionExtra(false);
+    setBulkSaleHandedOver({});
     setReservationDetails('');
     setBulkFramerDamage('');
     setBulkReturnReason('');
@@ -554,7 +554,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
               ? `${bulkSaleRemarks.trim()} | Handling Agent: ${bulkHandlingAgentName.trim()}`
               : `Handling Agent: ${bulkHandlingAgentName.trim()}`;
 
-            await Promise.resolve(onBulkSale(selectedArtworkIds, bulkActionValue, bulkActionExtra,
+            await Promise.resolve(onBulkSale(selectedArtworkIds, bulkActionValue, bulkSaleHandedOver,
               selectedEvent ? { id: selectedEvent.id, name: selectedEvent.title } : undefined,
               {
                 itdrUrl: bulkItdrList.length > 0 ? bulkItdrList : undefined,
@@ -656,7 +656,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
       setBulkDownpayment('');
       setBulkSaleDownpayments({});
       setBulkSaleInstallmentsEnabled?.({});
-      setBulkActionExtra(false);
+      setBulkSaleHandedOver({});
       setReservationDetails('');
       setReservationTab('person');
       setReservationClient('');
@@ -1632,8 +1632,8 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
         setBulkHandlingAgentName={setBulkHandlingAgentName}
         bulkSaleRemarks={bulkSaleRemarks}
         setBulkSaleRemarks={setBulkSaleRemarks}
-        bulkActionExtra={bulkActionExtra}
-        setBulkActionExtra={setBulkActionExtra}
+        bulkSaleHandedOver={bulkSaleHandedOver}
+        setBulkSaleHandedOver={setBulkSaleHandedOver}
         onSubmit={handleBulkActionSubmit}
         resetBulkModalState={handleCloseBulkModal}
       />

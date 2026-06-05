@@ -531,26 +531,7 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
                             )}
                         </div>
 
-                        {/* Logistics Override */}
-                        <div className="mt-8 pt-8 border-t border-[#edebe9] w-full">
-                            <div 
-                                className="flex items-center justify-between p-4 bg-neutral-50 rounded-sm border border-neutral-100 group hover:bg-[#edebe9]/40 transition-all cursor-pointer" 
-                                onClick={() => setBulkActionExtra?.(!bulkActionExtra)}
-                            >
-                                <div className="flex items-center gap-3 text-left">
-                                    <div className={`w-10 h-10 rounded-sm flex items-center justify-center transition-all ${bulkActionExtra ? 'bg-neutral-900 text-white shadow-lg' : 'bg-white text-neutral-400 border border-neutral-200'}`}>
-                                        <Tag size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-black uppercase tracking-widest text-neutral-900">Handed over to Client</p>
-                                        <p className="text-[10px] font-bold text-neutral-500">Already delivered / skip logistics request</p>
-                                    </div>
-                                </div>
-                                <div className={`w-12 h-6 rounded-md transition-all relative ${bulkActionExtra ? 'bg-neutral-900' : 'bg-neutral-200'}`}>
-                                    <div className={`absolute top-1 w-4 h-4 rounded-sm bg-white transition-all ${bulkActionExtra ? 'right-1' : 'left-1'}`} />
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             )}

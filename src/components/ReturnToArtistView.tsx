@@ -413,10 +413,68 @@ const ReturnToArtistView: React.FC<ReturnToArtistViewProps> = ({ returnRecords =
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
 
+      {/* Analysis Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Active Returns */}
+        <div 
+          onClick={() => setActiveStatModal('total')}
+          className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-all group border-l-4 border-l-red-500 cursor-pointer hover:-translate-y-0.5 active:scale-98"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Active Returns</h4>
+            <div className="p-2 bg-red-50 text-red-600 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-all duration-300">
+              <RotateCcw size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:rotate-12" />
+            </div>
+          </div>
+          <p className="text-3xl font-black text-neutral-900">{stats.total}</p>
+          <p className="text-xs text-neutral-500 mt-1 font-medium">Unresolved records</p>
+        </div>
 
+        {/* Card 2: Recent Returns */}
+        <div 
+          onClick={() => setActiveStatModal('recent')}
+          className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-all group border-l-4 border-l-purple-500 cursor-pointer hover:-translate-y-0.5 active:scale-98"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Recent Sends</h4>
+            <div className="p-2 bg-purple-50 text-purple-500 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+              <Clock size={18} className="transition-all duration-700 group-hover:scale-115 group-hover:rotate-[360deg]" />
+            </div>
+          </div>
+          <p className="text-3xl font-black text-neutral-900">{stats.recent}</p>
+          <p className="text-xs text-neutral-500 mt-1 font-medium">Last 30 days</p>
+        </div>
 
+        {/* Card 3: Returned Value */}
+        <div 
+          onClick={() => setActiveStatModal('value')}
+          className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-all group border-l-4 border-l-emerald-500 cursor-pointer hover:-translate-y-0.5 active:scale-98"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Returned Value</h4>
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+              <Banknote size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:translate-y-[-2px]" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-neutral-900 truncate">₱{stats.totalValue.toLocaleString()}</p>
+          <p className="text-xs text-neutral-500 mt-1 font-medium">Out of circulation</p>
+        </div>
 
-      {/* Controls & Filters Container */}
+        {/* Card 4: Top Branch */}
+        <div 
+          onClick={() => setActiveStatModal('branch')}
+          className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-all group border-l-4 border-l-blue-500 cursor-pointer hover:-translate-y-0.5 active:scale-98"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Top Branch</h4>
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+              <MapPin size={18} className="transition-all duration-300 group-hover:scale-115 group-hover:translate-y-[-2px]" />
+            </div>
+          </div>
+          <p className="text-lg font-black text-neutral-900 line-clamp-1" title={stats.topBranch}>{stats.topBranch}</p>
+          <p className="text-xs text-neutral-500 mt-1 font-medium">Most active source</p>
+        </div>
+      </div>
       <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-sm space-y-4">
         {selectedIds.size > 0 && onBulkDeleteReturnRecords && (
           <div className="flex items-center justify-between bg-red-50 px-4 py-3 rounded-xl border border-red-100 animate-in fade-in slide-in-from-top-2">

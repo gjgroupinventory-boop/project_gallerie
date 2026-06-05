@@ -232,22 +232,28 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
           </select>
         </div>
 
-        {/* Delivery Toggle */}
-        <div 
-          className="flex items-center justify-between p-4 bg-neutral-50 rounded-sm border border-neutral-100 group hover:bg-neutral-100 transition-all cursor-pointer" 
-          onClick={() => setSaleDelivered(!saleDelivered)}
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-sm flex items-center justify-center transition-all ${saleDelivered ? 'bg-neutral-900 text-white shadow-lg' : 'bg-white text-neutral-400 border border-neutral-200'}`}>
-              <Tag size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-neutral-900">Handed over to Client</p>
-              <p className="text-[10px] font-bold text-neutral-500">Already delivered / skip logistics request</p>
-            </div>
-          </div>
-          <div className={`w-12 h-6 rounded-md transition-all relative ${saleDelivered ? 'bg-neutral-900' : 'bg-neutral-200'}`}>
-            <div className={`absolute top-1 w-4 h-4 rounded-sm bg-white transition-all ${saleDelivered ? 'right-1' : 'left-1'}`} />
+        {/* Delivery Selection */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Delivery Option</label>
+          <div className="flex bg-[#edebe9] p-0.5 rounded-sm w-full">
+            {(['Logistics', 'Handed Over'] as const).map(opt => {
+              const isHandedOver = opt === 'Handed Over';
+              const isActive = isHandedOver ? saleDelivered : !saleDelivered;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setSaleDelivered(isHandedOver)}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${
+                    isActive
+                      ? 'bg-[#323130] text-white shadow-md'
+                      : 'text-[#605e5c] hover:bg-[#e1dfdd]'
+                  }`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
           </div>
         </div>
 

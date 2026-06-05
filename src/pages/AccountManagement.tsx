@@ -449,13 +449,47 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-light text-neutral-900 tracking-tight leading-tight">
-            Branch <span className="font-serif italic font-medium">Account Management</span>
-          </h1>
-          <p className="text-sm text-neutral-500">Manage gallery branch accounts, staff access, and role permissions.</p>
+      <div className="bg-neutral-950 border border-neutral-900 p-6 rounded-md shadow-sm relative overflow-hidden">
+        {/* Background decorative watermark */}
+        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-white/[0.03] select-none pointer-events-none leading-none -mb-4">
+          ACCOUNTS
         </div>
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span>Security Protocol</span>
+          </div>
+          <h1 className="text-3xl font-light text-white tracking-tight leading-tight">
+            Branch <span className="font-serif italic text-white font-medium">Account Management</span>
+          </h1>
+          <p className="text-xs text-neutral-400 font-medium leading-relaxed">
+            Manage gallery branch accounts, staff access, and role permissions.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex space-x-1 bg-neutral-100 p-1.5 rounded-sm w-fit border border-neutral-200/50 shadow-inner">
+          <button
+            onClick={() => setActiveTab('staff')}
+            className={`px-6 py-2 rounded-sm text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'staff'
+              ? 'bg-white text-neutral-900 shadow-md transform scale-[1.02]'
+              : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50'
+            }`}
+          >
+            Staff Accounts
+          </button>
+          <button
+            onClick={() => setActiveTab('exclusive')}
+            className={`px-6 py-2 rounded-sm text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'exclusive'
+              ? 'bg-white text-neutral-900 shadow-md transform scale-[1.02]'
+              : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50'
+            }`}
+          >
+            Exclusive
+          </button>
+        </div>
+
         <div className="flex items-center space-x-3">
           <button
             type="button"
@@ -605,190 +639,208 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
             })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Column 1: Access Level & Permissions */}
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">Access Level & Permissions</h4>
-              <div className="space-y-3">
-                {[
-                  { key: 'canAddArtwork', label: 'Add Artwork' },
-                  { key: 'canEditArtwork', label: 'Edit Artwork' },
-                  { key: 'canManageAccounts', label: 'Manage Accounts' },
-                  { key: 'canManageEvents', label: 'Manage Events & Auctions' },
-                  { key: 'canAccessCertificate', label: 'Access Certificates' },
-                  { key: 'canAttachITDR', label: 'Attach IT/DR/RSA/AR/OR/CR' },
-                  { key: 'canDeleteArtwork', label: 'Delete Artwork' },
-                  { key: 'canSellArtwork', label: 'Sell Artwork' },
-                  { key: 'canReserveArtwork', label: 'Reserve Artwork' },
-                  { key: 'canTransferArtwork', label: 'Transfer Artwork' },
-                  { key: 'canViewSalesHistory', label: 'View Sales History' },
-                  { key: 'canApproveFinance', label: 'Approve Finance' },
-                  { key: 'canApproveLogistics', label: 'Approve Logistics' },
-                  { key: 'canAccessAuditLogs', label: 'Access Audit Logs' },
-                  { key: 'canImportArtwork', label: 'Import Artwork Data' },
-                  { key: 'canExportArtwork', label: 'Export Artwork & Sales Data' },
-                ].map(({ key, label }) => {
-                  const isChecked = !!presetPermissions[key as keyof UserPermissions];
-                  return (
-                    <label key={key} className="flex items-center space-x-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
-                        isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
-                      }`}>
-                        {isChecked && (
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={isChecked}
-                        onChange={() => {
-                          const nextPermissions = {
-                            ...presetPermissions,
-                            [key]: !presetPermissions[key as keyof UserPermissions]
-                          };
-                          setPresetPermissions(nextPermissions);
-                        }}
-                      />
-                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
-                    </label>
-                  );
-                })}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column: Actions & View Constraints */}
+            <div className="space-y-6">
+              {/* Access Level & Permissions */}
+              <div className="bg-neutral-50/40 rounded-lg p-5 border border-neutral-200/60 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider border-b border-neutral-200/80 pb-2.5 flex items-center justify-between">
+                  <span>Access Level & Permissions</span>
+                  <span className="text-[10px] text-neutral-400 font-normal normal-case">Actions & operations permissions</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  {[
+                    { key: 'canAddArtwork', label: 'Add Artwork' },
+                    { key: 'canEditArtwork', label: 'Edit Artwork' },
+                    { key: 'canManageAccounts', label: 'Manage Accounts' },
+                    { key: 'canManageEvents', label: 'Manage Events & Auctions' },
+                    { key: 'canAccessCertificate', label: 'Access Certificates' },
+                    { key: 'canAttachITDR', label: 'Attach IT/DR/RSA/AR/OR/CR' },
+                    { key: 'canDeleteArtwork', label: 'Delete Artwork' },
+                    { key: 'canSellArtwork', label: 'Sell Artwork' },
+                    { key: 'canReserveArtwork', label: 'Reserve Artwork' },
+                    { key: 'canTransferArtwork', label: 'Transfer Artwork' },
+                    { key: 'canViewSalesHistory', label: 'View Sales History' },
+                    { key: 'canApproveFinance', label: 'Approve Finance' },
+                    { key: 'canApproveLogistics', label: 'Approve Logistics' },
+                    { key: 'canAccessAuditLogs', label: 'Access Audit Logs' },
+                    { key: 'canImportArtwork', label: 'Import Artwork Data' },
+                    { key: 'canExportArtwork', label: 'Export Artwork & Sales Data' },
+                  ].map(({ key, label }) => {
+                    const isChecked = !!presetPermissions[key as keyof UserPermissions];
+                    return (
+                      <label key={key} className="flex items-center space-x-3 cursor-pointer group select-none">
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                          isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                        }`}>
+                          {isChecked && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={isChecked}
+                          onChange={() => {
+                            const nextPermissions = {
+                              ...presetPermissions,
+                              [key]: !presetPermissions[key as keyof UserPermissions]
+                            };
+                            setPresetPermissions(nextPermissions);
+                          }}
+                        />
+                        <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* View Control */}
+              <div className="bg-neutral-50/40 rounded-lg p-5 border border-neutral-200/60 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider border-b border-neutral-200/80 pb-2.5 flex items-center justify-between">
+                  <span>View Control</span>
+                  <span className="text-[10px] text-neutral-400 font-normal normal-case">Visible artwork status lists</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  {[
+                    { key: 'canViewReserved', label: 'Reserved Artworks' },
+                    { key: 'canViewAuctioned', label: 'Auctioned Artworks' },
+                    { key: 'canViewExhibit', label: 'Exhibit Artworks' },
+                    { key: 'canViewForFraming', label: 'Framing Artworks' },
+                    { key: 'canViewBackToArtist', label: 'Back to Artist Artworks' },
+                  ].map(({ key, label }) => {
+                    const isChecked = !!presetPermissions[key as keyof UserPermissions];
+                    return (
+                      <label key={key} className="flex items-center space-x-3 cursor-pointer group select-none">
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                          isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                        }`}>
+                          {isChecked && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={isChecked}
+                          onChange={() => {
+                            const nextPermissions = {
+                              ...presetPermissions,
+                              [key]: !presetPermissions[key as keyof UserPermissions]
+                            };
+                            setPresetPermissions(nextPermissions);
+                          }}
+                        />
+                        <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Column 2: View Control */}
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">View Control</h4>
-              <div className="space-y-3">
-                {[
-                  { key: 'canViewReserved', label: 'Reserved Artworks' },
-                  { key: 'canViewAuctioned', label: 'Auctioned Artworks' },
-                  { key: 'canViewExhibit', label: 'Exhibit Artworks' },
-                  { key: 'canViewForFraming', label: 'Framing Artworks' },
-                  { key: 'canViewBackToArtist', label: 'Back to Artist Artworks' },
-                ].map(({ key, label }) => {
-                  const isChecked = !!presetPermissions[key as keyof UserPermissions];
-                  return (
-                    <label key={key} className="flex items-center space-x-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
-                        isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
-                      }`}>
-                        {isChecked && (
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={isChecked}
-                        onChange={() => {
-                          const nextPermissions = {
-                            ...presetPermissions,
-                            [key]: !presetPermissions[key as keyof UserPermissions]
-                          };
-                          setPresetPermissions(nextPermissions);
-                        }}
-                      />
-                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
-                    </label>
-                  );
-                })}
+            {/* Right Column: Navigation & Widgets */}
+            <div className="space-y-6">
+              {/* Artflow Tabs */}
+              <div className="bg-neutral-50/40 rounded-lg p-5 border border-neutral-200/60 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider border-b border-neutral-200/80 pb-2.5 flex items-center justify-between">
+                  <span>Artflow Tabs (Navigation)</span>
+                  <span className="text-[10px] text-neutral-400 font-normal normal-case">Sidebar navigation page access</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  {APP_TABS.map((tab) => {
+                    const isAccessible = (presetPermissions.accessibleTabs && Array.isArray(presetPermissions.accessibleTabs))
+                      ? presetPermissions.accessibleTabs.includes(tab.id)
+                      : getDefaultAccessibleTabs(presetTargetRole).includes(tab.id);
+
+                    return (
+                      <label key={tab.id} className="flex items-center space-x-3 cursor-pointer group select-none">
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                          isAccessible ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                        }`}>
+                          {isAccessible && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={isAccessible}
+                          onChange={() => {
+                            const currentTabs = presetPermissions.accessibleTabs || getDefaultAccessibleTabs(presetTargetRole);
+                            const nextTabs = currentTabs.includes(tab.id)
+                              ? currentTabs.filter(id => id !== tab.id)
+                              : [...currentTabs, tab.id];
+                            
+                            const nextPermissions = {
+                              ...presetPermissions,
+                              accessibleTabs: nextTabs
+                            };
+                            setPresetPermissions(nextPermissions);
+                          }}
+                        />
+                        <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{tab.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Column 3: Artflow Tabs */}
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">Artflow Tabs (Navigation)</h4>
-              <div className="space-y-3">
-                {APP_TABS.map((tab) => {
-                  const isAccessible = (presetPermissions.accessibleTabs && Array.isArray(presetPermissions.accessibleTabs))
-                    ? presetPermissions.accessibleTabs.includes(tab.id)
-                    : getDefaultAccessibleTabs(presetTargetRole).includes(tab.id);
-
-                  return (
-                    <label key={tab.id} className="flex items-center space-x-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
-                        isAccessible ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
-                      }`}>
-                        {isAccessible && (
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={isAccessible}
-                        onChange={() => {
-                          const currentTabs = presetPermissions.accessibleTabs || getDefaultAccessibleTabs(presetTargetRole);
-                          const nextTabs = currentTabs.includes(tab.id)
-                            ? currentTabs.filter(id => id !== tab.id)
-                            : [...currentTabs, tab.id];
-                          
-                          const nextPermissions = {
-                            ...presetPermissions,
-                            accessibleTabs: nextTabs
-                          };
-                          setPresetPermissions(nextPermissions);
-                        }}
-                      />
-                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{tab.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Column 4: Dashboard Cards & Views */}
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-100 pb-2">Dashboard Cards & Views</h4>
-              <div className="space-y-3">
-                {[
-                  { key: 'dashboardShowInventoryMetric', label: 'Inventory Metric Card' },
-                  { key: 'dashboardShowSoldMetric', label: 'Sold Metric Card' },
-                  { key: 'dashboardShowReservedMetric', label: 'Reserved Metric Card' },
-                  { key: 'dashboardShowRevenueMetric', label: 'Revenue Metric Card' },
-                  { key: 'dashboardShowSpotlightPiece', label: 'Spotlight Piece Card' },
-                  { key: 'dashboardShowSpotlightBranch', label: 'Spotlight Branch Card' },
-                  { key: 'dashboardShowNewestAdditions', label: 'Newest Additions Card' },
-                  { key: 'dashboardShowGallerySchedule', label: 'Gallery Schedule Calendar' },
-                  { key: 'dashboardShowDistributionChart', label: 'Distribution Pie Chart' },
-                  { key: 'dashboardShowTeamPresence', label: 'Team Presence Widget' },
-                ].map(({ key, label }) => {
-                  const isChecked = !!presetPermissions[key as keyof UserPermissions];
-                  return (
-                    <label key={key} className="flex items-center space-x-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
-                        isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
-                      }`}>
-                        {isChecked && (
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={isChecked}
-                        onChange={() => {
-                          const nextPermissions = {
-                            ...presetPermissions,
-                            [key]: !presetPermissions[key as keyof UserPermissions]
-                          };
-                          setPresetPermissions(nextPermissions);
-                        }}
-                      />
-                      <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
-                    </label>
-                  );
-                })}
+              {/* Dashboard Cards & Views */}
+              <div className="bg-neutral-50/40 rounded-lg p-5 border border-neutral-200/60 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider border-b border-neutral-200/80 pb-2.5 flex items-center justify-between">
+                  <span>Dashboard Cards & Views</span>
+                  <span className="text-[10px] text-neutral-400 font-normal normal-case">Metrics & chart view widget controls</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  {[
+                    { key: 'dashboardShowInventoryMetric', label: 'Inventory Metric Card' },
+                    { key: 'dashboardShowSoldMetric', label: 'Sold Metric Card' },
+                    { key: 'dashboardShowReservedMetric', label: 'Reserved Metric Card' },
+                    { key: 'dashboardShowRevenueMetric', label: 'Revenue Metric Card' },
+                    { key: 'dashboardShowSpotlightPiece', label: 'Spotlight Piece Card' },
+                    { key: 'dashboardShowSpotlightBranch', label: 'Spotlight Branch Card' },
+                    { key: 'dashboardShowNewestAdditions', label: 'Newest Additions Card' },
+                    { key: 'dashboardShowGallerySchedule', label: 'Gallery Schedule Calendar' },
+                    { key: 'dashboardShowDistributionChart', label: 'Distribution Pie Chart' },
+                    { key: 'dashboardShowTeamPresence', label: 'Team Presence Widget' },
+                  ].map(({ key, label }) => {
+                    const isChecked = !!presetPermissions[key as keyof UserPermissions];
+                    return (
+                      <label key={key} className="flex items-center space-x-3 cursor-pointer group select-none">
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                          isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                        }`}>
+                          {isChecked && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={isChecked}
+                          onChange={() => {
+                            const nextPermissions = {
+                              ...presetPermissions,
+                              [key]: !presetPermissions[key as keyof UserPermissions]
+                            };
+                            setPresetPermissions(nextPermissions);
+                          }}
+                        />
+                        <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -823,27 +875,6 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
           </div>
         </div>
       )}
-
-      <div className="flex space-x-1 bg-neutral-100 p-1.5 rounded-sm w-fit mb-4 border border-neutral-200/50 shadow-inner">
-        <button
-          onClick={() => setActiveTab('staff')}
-          className={`px-6 py-2 rounded-sm text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'staff'
-            ? 'bg-white text-neutral-900 shadow-md transform scale-[1.02]'
-            : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50'
-          }`}
-        >
-          Staff Accounts
-        </button>
-        <button
-          onClick={() => setActiveTab('exclusive')}
-          className={`px-6 py-2 rounded-sm text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'exclusive'
-            ? 'bg-white text-neutral-900 shadow-md transform scale-[1.02]'
-            : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50'
-          }`}
-        >
-          Exclusive
-        </button>
-      </div>
 
       <div className="bg-white rounded-md border border-neutral-200 shadow-sm overflow-hidden overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse min-w-[800px]">

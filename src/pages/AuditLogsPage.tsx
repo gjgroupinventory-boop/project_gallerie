@@ -312,43 +312,57 @@ const AuditLogsPage: React.FC<AuditLogsPageProps> = ({ logs, artworks, onViewArt
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-light text-neutral-900 tracking-tight leading-tight">
-            System <span className="font-serif italic text-neutral-900 font-medium">Audit Ledger</span>
-          </h1>
-          <p className="text-sm text-neutral-500">Immutable record of all user activities and inventory state changes.</p>
+      <div className="bg-neutral-950 border border-neutral-900 p-6 rounded-md shadow-sm relative overflow-hidden">
+        {/* Background decorative watermark */}
+        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-white/[0.03] select-none pointer-events-none leading-none -mb-4">
+          AUDIT
         </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 md:flex-none md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search by action or art code..."
-              className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-neutral-500/20 outline-none shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span>System Ledger</span>
           </div>
+          <h1 className="text-3xl font-light text-white tracking-tight leading-tight">
+            System <span className="font-serif italic text-white font-medium">Audit Ledger</span>
+          </h1>
+          <p className="text-xs text-neutral-400 font-medium leading-relaxed">
+            Immutable record of all user activities and inventory state changes.
+          </p>
+        </div>
+      </div>
 
-          <div className="relative flex-1 md:flex-none md:w-64">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="w-full pl-10 pr-8 py-3 bg-white border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-neutral-500/20 outline-none shadow-sm appearance-none font-medium text-neutral-700 cursor-pointer"
-            >
-              {uniqueUsers.map(user => (
-                <option key={user} value={user}>{user}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" size={16} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 w-full justify-between">
+          <div className="flex flex-wrap items-center gap-3 flex-1 md:flex-none">
+            <div className="relative flex-1 md:flex-none md:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search by action or art code..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-neutral-500/20 outline-none shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="relative flex-1 md:flex-none md:w-64">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="w-full pl-10 pr-8 py-2.5 bg-white border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-neutral-500/20 outline-none shadow-sm appearance-none font-medium text-neutral-700 cursor-pointer"
+              >
+                {uniqueUsers.map(user => (
+                  <option key={user} value={user}>{user}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" size={16} />
+            </div>
           </div>
 
           <button
             onClick={exportAuditLogs}
-            className="flex items-center space-x-2 bg-white border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-md hover:shadow-lg font-bold group transform hover:-translate-y-0.5"
+            className="flex items-center space-x-2 bg-white border border-neutral-200 text-neutral-700 px-6 py-2.5 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm font-bold group transform hover:-translate-y-0.5"
           >
             <Download size={18} className="group-hover:scale-110 transition-transform" />
             <span>Export</span>

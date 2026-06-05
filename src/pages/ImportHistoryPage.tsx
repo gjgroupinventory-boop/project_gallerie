@@ -485,70 +485,80 @@ const ImportHistoryPage: React.FC<ImportHistoryPageProps> = ({ logs, preventDupl
         );
       })()}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-h-[88px]">
-          <>
-            <div>
-              <h1 className="text-2xl font-light text-neutral-900 tracking-tight leading-tight">
-                Import <span className="font-serif italic text-neutral-900 font-medium">History</span>
-              </h1>
-              <p className="text-sm text-neutral-500">Track all Excel/CSV file imports and their status.</p>
+      <div className="bg-neutral-950 border border-neutral-900 p-6 rounded-md shadow-sm relative overflow-hidden">
+        {/* Background decorative watermark */}
+        <div className="absolute right-4 bottom-0 text-[6rem] font-serif italic font-normal text-white/[0.03] select-none pointer-events-none leading-none -mb-4">
+          IMPORT
+        </div>
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.25em] text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span>Import Protocol</span>
+          </div>
+          <h1 className="text-3xl font-light text-white tracking-tight leading-tight">
+            Import <span className="font-serif italic text-white font-medium">History</span>
+          </h1>
+          <p className="text-xs text-neutral-400 font-medium leading-relaxed">
+            Track all Excel/CSV file imports and their status.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            onClick={() => onTogglePreventDuplicates(!preventDuplicates)}
+            className={`flex items-center space-x-2 px-6 py-2.5 rounded-md border cursor-pointer transition-all select-none shadow-sm hover:shadow-md transform hover:-translate-y-0.5 ${preventDuplicates
+                ? 'bg-neutral-100 border-neutral-300 text-neutral-900'
+                : 'bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50'
+              }`}
+          >
+            {preventDuplicates ? <Shield size={18} /> : <ShieldAlert size={18} />}
+            <span className="text-sm font-bold">
+              {preventDuplicates ? 'Duplicates Blocked' : 'Allow Duplicates'}
+            </span>
+            <div className={`w-8 h-4 rounded-sm relative transition-colors ml-2 ${preventDuplicates ? 'bg-neutral-900' : 'bg-neutral-300'}`}>
+              <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-sm transition-transform ${preventDuplicates ? 'left-[18px]' : 'left-0.5'}`} />
             </div>
+          </div>
 
-            <div className="flex items-center space-x-3">
-              <div
-                onClick={() => onTogglePreventDuplicates(!preventDuplicates)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md border cursor-pointer transition-all select-none shadow-sm hover:shadow-md transform hover:-translate-y-0.5 ${preventDuplicates
-                    ? 'bg-neutral-100 border-neutral-300 text-neutral-900'
-                    : 'bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50'
-                  }`}
-              >
-                {preventDuplicates ? <Shield size={18} /> : <ShieldAlert size={18} />}
-                <span className="text-sm font-bold">
-                  {preventDuplicates ? 'Duplicates Blocked' : 'Allow Duplicates'}
-                </span>
-                <div className={`w-8 h-4 rounded-sm relative transition-colors ml-2 ${preventDuplicates ? 'bg-neutral-900' : 'bg-neutral-300'}`}>
-                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-sm transition-transform ${preventDuplicates ? 'left-[18px]' : 'left-0.5'}`} />
-                </div>
-              </div>
+          <div className="relative w-full sm:w-60">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by filename or user..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-neutral-500/20 outline-none shadow-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
 
-              <div className="relative w-full md:w-60">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search by filename or user..."
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-neutral-500/20 outline-none shadow-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              {userPermissions?.canExportArtwork && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => exportImportLogs()}
-                    className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
-                    title="Export as CSV"
-                  >
-                    <Download size={18} />
-                  </button>
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
-                    title="Export as PDF"
-                  >
-                    <FileText size={18} />
-                  </button>
-                  <button
-                    onClick={handleExportImage}
-                    className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
-                    title="Export as Image"
-                  >
-                    <ImageIcon size={18} />
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
+        {userPermissions?.canExportArtwork && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => exportImportLogs()}
+              className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
+              title="Export as CSV"
+            >
+              <Download size={18} />
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
+              title="Export as PDF"
+            >
+              <FileText size={18} />
+            </button>
+            <button
+              onClick={handleExportImage}
+              className="flex items-center justify-center w-10 h-10 bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-400 transition-all shadow-sm hover:shadow-md"
+              title="Export as Image"
+            >
+              <ImageIcon size={18} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Floating Bottom Action Bar */}

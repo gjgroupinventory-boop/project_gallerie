@@ -34,13 +34,16 @@ interface InventoryProps {
   onBulkSale?: (
     ids: string[],
     client: string,
-    delivered: boolean,
+    delivered: boolean | Record<string, boolean>,
     eventInfo?: { id: string; name: string },
     attachments?: { itdrUrl?: string | string[]; rsaUrl?: string | string[]; orCrUrl?: string | string[] },
     totalDownpayment?: number,
     clientEmail?: string,
     clientContact?: string,
-    perArtworkDownpayments?: Record<string, number>
+    perArtworkDownpayments?: Record<string, number>,
+    installmentsEnabled?: boolean,
+    discountPercentage?: Record<string, number> | number,
+    remarks?: string
   ) => void;
   onAddBranch?: (name: string) => void;
   onEdit?: (id: string, updates: Partial<Artwork>) => void;
@@ -122,6 +125,10 @@ const Inventory: React.FC<InventoryProps> = ({
   const [bulkClientEmail, setBulkClientEmail] = useState('');
   const [bulkClientContact, setBulkClientContact] = useState('');
   const [bulkSaleEventId, setBulkSaleEventId] = useState('');
+  const [bulkSaleHandedOver, setBulkSaleHandedOver] = useState<Record<string, boolean>>({});
+  const [bulkSaleDiscounts, setBulkSaleDiscounts] = useState<Record<string, string>>({});
+  const [bulkHandlingAgentName, setBulkHandlingAgentName] = useState('');
+  const [bulkSaleRemarks, setBulkSaleRemarks] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<ArtworkStatus | string>('Available');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -878,6 +885,10 @@ const Inventory: React.FC<InventoryProps> = ({
   const resetBulkOperationalState = () => {
     setBulkActionValue('');
     setBulkActionExtra(false);
+    setBulkSaleHandedOver({});
+    setBulkSaleDiscounts({});
+    setBulkHandlingAgentName('');
+    setBulkSaleRemarks('');
     setBulkClientEmail('');
     setBulkClientContact('');
     setBulkSaleEventId('');
@@ -906,13 +917,19 @@ const Inventory: React.FC<InventoryProps> = ({
     if (type === 'sale') {
       const initialTerms: Record<string, string> = {};
       const initialEnabled: Record<string, boolean> = {};
+      const initialHandedOver: Record<string, boolean> = {};
+      const initialDiscounts: Record<string, string> = {};
       selectedIds.forEach(id => {
         const art = artworks.find(a => a.id === id);
         initialTerms[id] = '';
         initialEnabled[id] = false; // Default to Full payment
+        initialHandedOver[id] = false; // Default to Logistics
+        initialDiscounts[id] = '';
       });
       setBulkSaleDownpayments(initialTerms);
       setBulkSaleInstallmentsEnabled(initialEnabled);
+      setBulkSaleHandedOver(initialHandedOver);
+      setBulkSaleDiscounts(initialDiscounts);
     }
 
     setBulkActionModal({ type });
@@ -936,8 +953,7 @@ const Inventory: React.FC<InventoryProps> = ({
       switch (bulkActionModal.type) {
         case 'sale':
           if (onBulkSale && bulkActionValue) {
-            // Aggregate downpayment from per-item PHP values
-            const perArtworkDownpayments: Record<string, number> = {};
+             const perArtworkDownpayments: Record<string, number> = {};
             selectedIds.forEach(id => {
               if (bulkSaleInstallmentsEnabled[id]) {
                 perArtworkDownpayments[id] = parseFloat(bulkSaleDownpayments[id]) || 0;
@@ -947,19 +963,31 @@ const Inventory: React.FC<InventoryProps> = ({
               }
             });
 
+            const perArtworkDiscounts: Record<string, number> = {};
+            selectedIds.forEach(id => {
+              const val = bulkSaleDiscounts[id];
+              perArtworkDiscounts[id] = val ? parseFloat(val) : 0;
+            });
+
             const totalDownpayment = Object.values(perArtworkDownpayments).reduce((sum, val) => sum + val, 0);
             const eventInfo = events.find(e => e.id === bulkSaleEventId);
+            const remarksWithAgent = bulkSaleRemarks.trim()
+              ? `${bulkSaleRemarks.trim()} | Handling Agent: ${bulkHandlingAgentName.trim()}`
+              : `Handling Agent: ${bulkHandlingAgentName.trim()}`;
 
             await onBulkSale(
               selectedIds,
               bulkActionValue,
-              bulkActionExtra, // delivered
+              bulkSaleHandedOver, // delivered (Record<string, boolean>)
               eventInfo ? { id: eventInfo.id, name: eventInfo.title } : undefined,
               { itdrUrl: itdrList, rsaUrl: rsaList, orCrUrl: orcrList },
               totalDownpayment,
               bulkClientEmail,
               bulkClientContact,
-              perArtworkDownpayments
+              perArtworkDownpayments,
+              true, // installmentsEnabled
+              perArtworkDiscounts, // discountPercentage
+              remarksWithAgent
             );
           }
           break;
@@ -1426,8 +1454,8 @@ const Inventory: React.FC<InventoryProps> = ({
                 ) : (
                   <div className="p-8">
                     {bulkActionModal.type === 'sale' && (
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-8">
+                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div className="lg:col-span-3 space-y-8">
                           <div className="space-y-4">
                             <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Client Identity</h4>
                             <div className="grid grid-cols-1 gap-4">
@@ -1444,6 +1472,32 @@ const Inventory: React.FC<InventoryProps> = ({
                                   <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Mobile / Contact <span className="text-[#a4262c]">*</span></label>
                                   <PhoneInput value={bulkClientContact} onChange={setBulkClientContact} className="h-11" />
                                 </div>
+                              </div>
+                          </div>
+  
+                          <div className="space-y-4">
+                            <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Audit Compliance</h4>
+                            <div className="space-y-4">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Handling Agent Name <span className="text-[#a4262c]">*</span></label>
+                                <input
+                                  type="text"
+                                  placeholder="Enter handling agent's name..."
+                                  required
+                                  className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]"
+                                  value={bulkHandlingAgentName}
+                                  onChange={e => setBulkHandlingAgentName(e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Sale Remarks / Audit Note <span className="text-[#a4262c]">*</span></label>
+                                <textarea
+                                  placeholder="Required for audit compliance (e.g. client background, special terms...)"
+                                  required
+                                  className="w-full min-h-[80px] p-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130] focus:bg-white transition-all resize-none"
+                                  value={bulkSaleRemarks}
+                                  onChange={e => setBulkSaleRemarks(e.target.value)}
+                                />
                               </div>
                             </div>
                           </div>
@@ -1463,30 +1517,89 @@ const Inventory: React.FC<InventoryProps> = ({
                             </div>
 
                             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                              {cartArtworks.map((art) => (
-                                <div key={art.id} className="group flex items-start gap-4 p-5 bg-[#faf9f8] border border-[#edebe9] rounded-sm transition-all hover:bg-white hover:shadow-sm">
-                                  <div className="w-20 h-20 bg-white border border-[#edebe9] rounded-sm overflow-hidden shrink-0 shadow-sm transition-colors group-hover:border-[#323130]">
-                                    <img src={art.imageUrl} className="w-full h-full object-cover" alt={art.title} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between">
-                                      <div className="space-y-1">
-                                        <h5 className="text-[12px] font-black text-[#323130] uppercase leading-none truncate">{art.title}</h5>
-                                        <p className="text-[10px] font-bold text-[#605e5c] uppercase opacity-60 leading-none truncate mt-2">{art.artist} • {art.code}</p>
-                                        <div className="pt-2">
-                                          <span className="px-2 py-0.5 bg-[#eff6fc] text-[#0078d4] text-[9px] font-black uppercase rounded-sm border border-[#deecf9]">SRP: ₱{art.price?.toLocaleString()}</span>
+                              {cartArtworks.map((art) => {
+                                const installmentEnabled = bulkSaleInstallmentsEnabled?.[art.id] ?? !!bulkSaleDownpayments?.[art.id];
+                                const discountPctString = bulkSaleDiscounts?.[art.id] || '';
+                                const discountPct = discountPctString ? parseFloat(discountPctString) : 0;
+                                const discountedPrice = discountPct > 0 ? Math.round(art.price * (1 - discountPct / 100)) : art.price;
+                                const downpaymentValue = bulkSaleDownpayments?.[art.id] || '0';
+                                const numericDownpayment = parseFloat(downpaymentValue);
+                                const remainingBalance = Math.max(discountedPrice - (Number.isNaN(numericDownpayment) ? 0 : numericDownpayment), 0);
+
+                                return (
+                                  <div key={art.id} className="group flex flex-col gap-4 p-5 bg-[#faf9f8] border border-[#edebe9] rounded-sm transition-all hover:bg-white hover:shadow-sm">
+                                    <div className="flex items-start gap-4">
+                                      <div className="w-20 h-20 bg-white border border-[#edebe9] rounded-sm overflow-hidden shrink-0 shadow-sm transition-colors group-hover:border-[#323130]">
+                                        <img src={art.imageUrl} className="w-full h-full object-cover" alt={art.title} />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="space-y-1">
+                                          <h5 className="text-[12px] font-black text-[#323130] uppercase leading-none truncate">{art.title}</h5>
+                                          <p className="text-[10px] font-bold text-[#605e5c] uppercase opacity-60 leading-none truncate mt-2">{art.artist} • {art.code}</p>
+                                          <div className="pt-2 flex flex-wrap gap-2">
+                                            <span className="px-2 py-0.5 bg-[#eff6fc] text-[#0078d4] text-[9px] font-black uppercase rounded-sm border border-[#deecf9]">SRP: ₱{art.price?.toLocaleString()}</span>
+                                            {discountPct > 0 && (
+                                              <span className="px-2 py-0.5 bg-[#f0f9f1] text-[#107c41] text-[9px] font-black uppercase rounded-sm border border-[#dff6dd]">Net: ₱{discountedPrice.toLocaleString()} (-{discountPct}%)</span>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
-                                      
-                                      <div className="flex flex-col items-end gap-3 text-right">
-                                        <div className="flex bg-[#edebe9] p-0.5 rounded-sm">
+                                    </div>
+
+                                    {/* Bottom Grid for Options */}
+                                    <div className="pt-4 border-t border-dashed border-[#edebe9] grid grid-cols-1 md:grid-cols-3 gap-6">
+                                      {/* Column 1: Delivery Option */}
+                                      <div className="space-y-2">
+                                        <span className="text-[9px] font-black text-[#605e5c] uppercase tracking-widest block">Delivery Option</span>
+                                        <div className="flex bg-[#edebe9] p-0.5 rounded-sm w-full">
+                                          {(['Logistics', 'Handed Over'] as const).map(opt => {
+                                            const isHandedOver = opt === 'Handed Over';
+                                            const isActive = isHandedOver ? !!bulkSaleHandedOver?.[art.id] : !bulkSaleHandedOver?.[art.id];
+                                            return (
+                                              <button
+                                                key={opt}
+                                                type="button"
+                                                onClick={() => {
+                                                  setBulkSaleHandedOver(prev => ({
+                                                    ...prev,
+                                                    [art.id]: isHandedOver
+                                                  }));
+                                                }}
+                                                className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-sm transition-all ${
+                                                  isActive
+                                                    ? 'bg-[#323130] text-white shadow-md'
+                                                    : 'text-[#605e5c] hover:bg-[#e1dfdd]'
+                                                }`}
+                                              >
+                                                {opt}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+
+                                      {/* Column 2: Payment Terms */}
+                                      <div className="space-y-2">
+                                        <span className="text-[9px] font-black text-[#605e5c] uppercase tracking-widest block">Payment Terms</span>
+                                        <div className="flex bg-[#edebe9] p-0.5 rounded-sm w-full">
                                           {(['Full', 'DP'] as const).map(p => (
-                                            <button 
-                                              key={p} 
-                                              onClick={() => setBulkSaleInstallmentsEnabled(prev => ({ ...prev, [art.id]: p === 'DP' }))}
-                                              className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-sm transition-all ${
-                                                (p === 'DP' ? bulkSaleInstallmentsEnabled[art.id] : !bulkSaleInstallmentsEnabled[art.id]) 
-                                                  ? 'bg-[#323130] text-white shadow-md' 
+                                            <button
+                                              key={p}
+                                              type="button"
+                                              onClick={() => {
+                                                const isDp = p === 'DP';
+                                                setBulkSaleInstallmentsEnabled(prev => ({ ...prev, [art.id]: isDp }));
+                                                if (!isDp) {
+                                                  setBulkSaleDownpayments(prev => {
+                                                    const next = { ...prev };
+                                                    delete next[art.id];
+                                                    return next;
+                                                  });
+                                                }
+                                              }}
+                                              className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-sm transition-all ${
+                                                (p === 'DP' ? installmentEnabled : !installmentEnabled)
+                                                  ? 'bg-[#323130] text-white shadow-md'
                                                   : 'text-[#605e5c] hover:bg-[#e1dfdd]'
                                               }`}
                                             >
@@ -1494,40 +1607,62 @@ const Inventory: React.FC<InventoryProps> = ({
                                             </button>
                                           ))}
                                         </div>
-                                        
-                                        {bulkSaleInstallmentsEnabled[art.id] && (
-                                          <div className="flex flex-col items-end gap-1 animate-in slide-in-from-right-4">
-                                            <span className="text-[9px] font-black text-[#605e5c] uppercase tracking-widest">Authorized Downpayment</span>
-                                              <div className="relative group/input">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-[#323130]">₱</span>
-                                                <input 
-                                                  type="text" 
-                                                  inputMode="numeric"
-                                                  value={bulkSaleDownpayments[art.id] || '0'} 
-                                                  onFocus={(e) => e.target.select()}
-                                                  onChange={e => {
-                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                    const parts = val.split('.');
-                                                    if (parts.length > 2) parts.splice(2);
-                                                    if (parts[0] && parts[0].length > 1) parts[0] = parts[0].replace(/^0+/, '') || '0';
-                                                    setBulkSaleDownpayments(prev => ({ ...prev, [art.id]: parts.join('.') }));
-                                                  }}
-                                                  className="w-40 h-10 pl-7 pr-4 bg-white border-2 border-[#edebe9] rounded-sm text-right text-sm font-black text-[#323130] focus:border-[#323130] transition-all outline-none" 
-                                                />
-                                              </div>
-                                            <p className="text-[9px] font-bold text-[#a19f9d] uppercase">Remaining: ₱{(art.price - (parseFloat(bulkSaleDownpayments[art.id]) || 0)).toLocaleString()}</p>
+
+                                        {installmentEnabled && (
+                                          <div className="space-y-1.5 pt-1 animate-in slide-in-from-top-2 duration-200">
+                                            <span className="text-[9px] font-black text-[#605e5c] uppercase tracking-widest block">Authorized Downpayment</span>
+                                            <div className="relative group/input">
+                                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-[#323130]">₱</span>
+                                              <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={bulkSaleDownpayments?.[art.id] || '0'}
+                                                onFocus={(e) => e.target.select()}
+                                                onChange={e => {
+                                                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                  const parts = val.split('.');
+                                                  if (parts.length > 2) parts.splice(2);
+                                                  if (parts[0] && parts[0].length > 1) parts[0] = parts[0].replace(/^0+/, '') || '0';
+                                                  setBulkSaleDownpayments(prev => ({ ...prev, [art.id]: parts.join('.') }));
+                                                }}
+                                                className="w-full h-9 pl-7 pr-4 bg-white border border-[#edebe9] rounded-sm text-right text-xs font-black text-[#323130] focus:border-[#323130] transition-all outline-none"
+                                              />
+                                            </div>
+                                            <p className="text-[9px] font-bold text-[#a19f9d] uppercase">Remaining: ₱{remainingBalance.toLocaleString()}</p>
                                           </div>
                                         )}
                                       </div>
+
+                                      {/* Column 3: Item Discount */}
+                                      <div className="space-y-2">
+                                        <span className="text-[9px] font-black text-[#605e5c] uppercase tracking-widest block">Item Discount (%)</span>
+                                        <div className="relative w-full">
+                                          <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="0"
+                                            className="w-full h-9 pr-8 pl-3 bg-white border border-[#edebe9] rounded-sm text-xs font-bold text-[#323130] focus:outline-none focus:ring-1 focus:ring-[#0078d4] text-right"
+                                            value={discountPctString}
+                                            onChange={(e) => {
+                                              const val = e.target.value.replace(/[^0-9.]/g, '');
+                                              const num = parseFloat(val);
+                                              if (num > 100) return; // Limit to 100%
+                                              setBulkSaleDiscounts(prev => ({ ...prev, [art.id]: val }));
+                                            }}
+                                          />
+                                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-[10px]">%</span>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
+                            </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="lg:col-span-1 border border-[#edebe9] rounded-md p-6 flex flex-col items-center bg-[#f3f2f1]/40">
+                        <div className="lg:col-span-1 border border-[#edebe9] rounded-md p-6 flex flex-col items-center bg-[#f3f2f1]/40 self-start sticky top-0">
                           <div className="w-14 h-14 bg-white border border-[#edebe9] rounded-lg flex items-center justify-center shadow-sm mb-4 text-[#0078d4]">
                             <ShoppingBag size={28} />
                           </div>
@@ -1589,25 +1724,7 @@ const Inventory: React.FC<InventoryProps> = ({
                              )}
                           </div>
   
-                          <div className="mt-8 pt-8 border-t border-[#edebe9] w-full">
-                            <div 
-                              className="flex items-center justify-between p-4 bg-neutral-50 rounded-sm border border-neutral-100 group hover:bg-[#edebe9]/40 transition-all cursor-pointer" 
-                              onClick={() => setBulkActionExtra(!bulkActionExtra)}
-                            >
-                              <div className="flex items-center gap-3 text-left">
-                                <div className={`w-10 h-10 rounded-sm flex items-center justify-center transition-all ${bulkActionExtra ? 'bg-neutral-900 text-white shadow-lg' : 'bg-white text-neutral-400 border border-neutral-200'}`}>
-                                  <Tag size={20} />
-                                </div>
-                                <div>
-                                  <p className="text-xs font-black uppercase tracking-widest text-neutral-900">Handed over to Client</p>
-                                  <p className="text-[10px] font-bold text-neutral-500">Already delivered / skip logistics request</p>
-                                </div>
-                              </div>
-                              <div className={`w-12 h-6 rounded-md transition-all relative ${bulkActionExtra ? 'bg-neutral-900' : 'bg-neutral-200'}`}>
-                                <div className={`absolute top-1 w-4 h-4 rounded-sm bg-white transition-all ${bulkActionExtra ? 'right-1' : 'left-1'}`} />
-                              </div>
-                            </div>
-                          </div>
+
                         </div>
                       </div>
                     )}
@@ -1895,7 +2012,20 @@ const Inventory: React.FC<InventoryProps> = ({
                    <button 
                      onClick={handleBulkActionSubmit}
                      disabled={
-                       bulkActionModal.type === 'sale' ? (!bulkActionValue || !bulkClientContact || bulkClientContact.replace(/\D/g, '').length < 7 || selectedIds.some(id => bulkSaleInstallmentsEnabled[id] && !bulkSaleDownpayments[id])) :
+                       bulkActionModal.type === 'sale' ? (
+                          !bulkActionValue ||
+                          !bulkClientContact || bulkClientContact.replace(/\D/g, '').length < 7 ||
+                          !bulkHandlingAgentName?.trim() ||
+                          !bulkSaleRemarks?.trim() ||
+                          toAttachmentArray(bulkTempItdr).length === 0 ||
+                          toAttachmentArray(bulkTempRsa).length === 0 ||
+                          selectedIds.some(id => {
+                            const installmentEnabled = bulkSaleInstallmentsEnabled[id];
+                            if (!installmentEnabled) return false;
+                            const dpVal = bulkSaleDownpayments[id];
+                            return !dpVal || parseFloat(dpVal) <= 0 || Number.isNaN(parseFloat(dpVal));
+                          })
+                        ) :
                        bulkActionModal.type === 'reserve' ? (reservationTab === 'person' ? !reservationClient : (reservationTab === 'event' || reservationTab === 'auction') ? !reservationEventId : false) :
                        bulkActionModal.type === 'transfer' ? !bulkActionValue :
                        bulkActionModal.type === 'framing' ? !framerDamageDetails :

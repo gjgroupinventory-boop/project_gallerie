@@ -43,7 +43,7 @@ interface GalleryManagementPageProps {
   onBulkSale?: (
     ids: string[],
     client: string,
-    delivered: boolean,
+    delivered: boolean | Record<string, boolean>,
     eventInfo?: { id: string; name: string },
     attachments?: { itdrUrl?: string | string[]; rsaUrl?: string | string[]; orCrUrl?: string | string[] },
     totalDownpayment?: number,
