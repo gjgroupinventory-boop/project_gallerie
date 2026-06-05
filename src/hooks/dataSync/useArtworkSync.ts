@@ -173,6 +173,12 @@ export const useArtworkSync = ({
     };
 
     void syncArtworks();
+
+    const handleRefetchArtworksEvent = () => {
+      void syncArtworks();
+    };
+    window.addEventListener('artisflow-refetch-artworks', handleRefetchArtworksEvent);
+
     const channel = supabase.channel(`artisflow-artworks-sync-${currentUser.id}`);
     channel.on('postgres_changes', { event: '*', schema: 'public', table: 'artworks' }, (payload) => {
         const rawItem = payload.new || payload.old;
@@ -207,6 +213,9 @@ export const useArtworkSync = ({
       });
       
     channel.subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      window.removeEventListener('artisflow-refetch-artworks', handleRefetchArtworksEvent);
+      supabase.removeChannel(channel);
+    };
   }, [currentUser?.id, shouldLoadFullArtworks, setAllArtworksIncludingDeleted, setArtworks, setIsLoadingArtworks, handleSyncError]);
 };

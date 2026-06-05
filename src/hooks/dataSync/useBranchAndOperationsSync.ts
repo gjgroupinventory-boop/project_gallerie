@@ -207,11 +207,20 @@ export const useBranchAndOperationsSync = ({
     };
 
     void syncBranches();
+
+    const handleRefetchBranchesEvent = () => {
+      void syncBranches();
+    };
+    window.addEventListener('artisflow-refetch-branches', handleRefetchBranchesEvent);
+
     const channel = supabase.channel(`artisflow-branches-sync-${currentUser.id}`);
     channel.on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, handleBranchRealtime);
     
     channel.subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      window.removeEventListener('artisflow-refetch-branches', handleRefetchBranchesEvent);
+      supabase.removeChannel(channel);
+    };
   }, [currentUser?.id, setBranchAddresses, setBranchCategories, setBranchLogos, setBranches, setExclusiveBranches]);
 
   useEffect(() => {
@@ -323,6 +332,12 @@ export const useBranchAndOperationsSync = ({
     };
 
     void syncOperations();
+
+    const handleRefetchEvent = () => {
+      void syncOperations();
+    };
+    window.addEventListener('artisflow-refetch-transfers', handleRefetchEvent);
+
     const channel = supabase.channel(`artisflow-operations-sync-${currentUser.id}`);
     channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_logs' }, payload =>
@@ -341,6 +356,9 @@ export const useBranchAndOperationsSync = ({
         handleListRealtime(payload, setTransferRequests, 200, parseTransferRequest));
 
     channel.subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      window.removeEventListener('artisflow-refetch-transfers', handleRefetchEvent);
+      supabase.removeChannel(channel);
+    };
   }, [currentUser?.id, shouldSyncOperationalData, setAudits, setFramerRecords, setImportLogs, setLogs, setReturnRecords, setTransfers, setTransferRequests]);
 };

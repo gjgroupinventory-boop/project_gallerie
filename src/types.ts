@@ -99,6 +99,12 @@ export interface UserPermissions {
   dashboardShowGallerySchedule: boolean;
   dashboardShowDistributionChart: boolean;
   dashboardShowTeamPresence: boolean;
+  canViewDeliveryRequests: boolean;
+  canViewDeliveryActive: boolean;
+  canViewDeliveryRescheduled: boolean;
+  canViewDeliveryPending: boolean;
+  canViewDeliveryDelivered: boolean;
+  canViewDeliveryFailed: boolean;
   accessibleTabs?: string[];
 }
 

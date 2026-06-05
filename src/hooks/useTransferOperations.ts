@@ -102,7 +102,7 @@ export const useTransferOperations = () => {
         logActivity(req.artworkId, 'Transfer Requested', `To ${toBranch}.${remarks ? ` Remarks: ${remarks}` : ''}`, artwork);
       });
 
-      pushNotification('Transfer Requested', `${newRequests.length} items requested for transfer.`, 'inventory');
+      pushNotification('Transfer Requested', `${newRequests.length} items requested for transfer to ${toBranch}.`, 'inventory', undefined, undefined, true);
       setImportStatus({ isVisible: false });
     } catch (error: any) {
       console.error('Supabase Transfer Request Error:', error);
@@ -210,7 +210,7 @@ export const useTransferOperations = () => {
       if (updatedArtwork) setArtworks(prev => prev.map(a => String(a.id) === String(artwork!.id) ? updatedArtwork : a));
       
       logActivity(request.artworkId, 'Transfer Accepted', `To ${request.toBranch}.${remarks ? ` Remarks: ${remarks}` : ''}`, updatedArtwork || undefined);
-      pushNotification('Transfer Accepted', request.artworkTitle, 'inventory');
+      pushNotification('Transfer Accepted', `Transfer for "${request.artworkTitle}" to ${request.toBranch} has been accepted.`, 'inventory', request.artworkId, undefined, true);
     } catch (error: any) {
       console.error('Accept Transfer Error:', error);
       pushNotification('Action Failed', `Failed to accept transfer: ${error.message || 'Unknown error'}`, 'system');
@@ -251,7 +251,7 @@ export const useTransferOperations = () => {
         notes: declineNote
       } : r));
       logActivity(request.artworkId, 'Transfer Declined', declineNote || 'Transfer request declined.', artworks.find(a => String(a.id) === String(request.artworkId)));
-      pushNotification('Transfer Declined', request.artworkTitle, 'inventory');
+      pushNotification('Transfer Declined', `Transfer for "${request.artworkTitle}" to ${request.toBranch} has been declined.`, 'inventory', request.artworkId, undefined, true);
     } catch (error) {
       console.error('Decline Transfer Error:', error);
       pushNotification('Action Failed', 'Could not update request status.', 'system');
@@ -284,7 +284,7 @@ export const useTransferOperations = () => {
 
       setTransferRequests(prev => prev.map(r => String(r.id) === String(request.id) ? { ...r, status: 'On Hold' as TransferStatus, notes: holdNote } : r));
       logActivity(request.artworkId, 'Transfer Hold', holdNote, artworks.find(a => String(a.id) === String(request.artworkId)));
-      pushNotification('Transfer On Hold', request.artworkTitle, 'inventory');
+      pushNotification('Transfer On Hold', `Transfer for "${request.artworkTitle}" to ${request.toBranch} has been put on hold.`, 'inventory', request.artworkId, undefined, true);
     } catch (error) {
       console.error('Hold Transfer Error:', error);
       pushNotification('Action Failed', 'Could not update request status.', 'system');

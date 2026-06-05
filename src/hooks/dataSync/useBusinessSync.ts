@@ -147,12 +147,23 @@ export const useBusinessSync = ({
     };
 
     void syncBusinessData();
+
+    const handleRefetchBusinessEvent = () => {
+      void syncBusinessData();
+    };
+    window.addEventListener('artisflow-refetch-sales', handleRefetchBusinessEvent);
+    window.addEventListener('artisflow-refetch-events', handleRefetchBusinessEvent);
+
     const channel = supabase.channel(`artisflow-business-sync-${currentUser.id}`);
     channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, handleSalesRealtime)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, handleEventsRealtime);
       
     channel.subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      window.removeEventListener('artisflow-refetch-sales', handleRefetchBusinessEvent);
+      window.removeEventListener('artisflow-refetch-events', handleRefetchBusinessEvent);
+      supabase.removeChannel(channel);
+    };
   }, [currentUser?.id, setEvents, setIsLoadingEvents, setIsLoadingSales, setSales, shouldLoadFullBusinessData]);
 };

@@ -81,6 +81,12 @@ export const useAccountsSync = ({
     };
 
     void syncAccounts();
+
+    const handleRefetchAccountsEvent = () => {
+      void syncAccounts();
+    };
+    window.addEventListener('artisflow-refetch-accounts', handleRefetchAccountsEvent);
+
     const channel = supabase.channel(`artisflow-accounts-sync-${currentUser.id}`);
     channel.on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
         if (payload.eventType === 'INSERT') {
@@ -95,6 +101,9 @@ export const useAccountsSync = ({
       });
 
     channel.subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      window.removeEventListener('artisflow-refetch-accounts', handleRefetchAccountsEvent);
+      supabase.removeChannel(channel);
+    };
   }, [currentUser, activeTab, accounts.length, setAccounts, setIsLoadingUsers]);
 };

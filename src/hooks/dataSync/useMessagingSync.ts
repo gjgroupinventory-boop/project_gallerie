@@ -56,6 +56,27 @@ export const useMessagingSync = ({
       const mappedNotification = mapFromSnakeCase(payload.new) as AppNotification;
       if (payload.eventType === 'INSERT') {
         setNotifications(prev => upsertRealtimeRecord(prev, mappedNotification, OPERATIONS_ROW_LIMITS.notifications));
+        
+        const lowerTitle = (mappedNotification.title || '').toLowerCase();
+        const lowerMsg = (mappedNotification.message || '').toLowerCase();
+        if (lowerTitle.includes('transfer') || lowerMsg.includes('transfer')) {
+          window.dispatchEvent(new CustomEvent('artisflow-refetch-transfers'));
+        }
+        if (lowerTitle.includes('sale') || lowerMsg.includes('sale') || lowerTitle.includes('payment') || lowerMsg.includes('payment') || lowerTitle.includes('logistics') || lowerMsg.includes('logistics') || lowerTitle.includes('delivery') || lowerMsg.includes('delivery')) {
+          window.dispatchEvent(new CustomEvent('artisflow-refetch-sales'));
+        }
+        if (lowerTitle.includes('event') || lowerMsg.includes('event')) {
+          window.dispatchEvent(new CustomEvent('artisflow-refetch-events'));
+        }
+        if (lowerTitle.includes('artwork') || lowerMsg.includes('artwork') || lowerTitle.includes('import') || lowerMsg.includes('import')) {
+          window.dispatchEvent(new CustomEvent('artisflow-refetch-artworks'));
+        }
+        if (lowerTitle.includes('branch') || lowerMsg.includes('branch')) {
+          window.dispatchEvent(new CustomEvent('artisflow-refetch-branches'));
+        }
+        if (lowerTitle.includes('account') || lowerMsg.includes('account') || lowerTitle.includes('permissions') || lowerMsg.includes('permissions')) {
+          window.dispatchEvent(new CustomEvent('artisflow-refetch-accounts'));
+        }
         return;
       }
 

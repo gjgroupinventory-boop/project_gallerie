@@ -18,7 +18,8 @@ export const useNotifications = () => {
     message: string, 
     type: 'inventory' | 'sales' | 'system' = 'system', 
     artworkId?: string, 
-    items?: { id: string; title: string; code: string; imageUrl?: string; status?: 'success' | 'failed'; error?: string }[]
+    items?: { id: string; title: string; code: string; imageUrl?: string; status?: 'success' | 'failed'; error?: string }[],
+    isImportant?: boolean
   ) => {
     const newNotif: AppNotification = {
       id: generateId(),
@@ -30,7 +31,8 @@ export const useNotifications = () => {
       artworkId,
       items,
       userName: currentUser?.name || undefined,
-      agent: currentUser?.branch || undefined
+      agent: currentUser?.branch || undefined,
+      isImportant
     };
 
     setNotifications(prev => {

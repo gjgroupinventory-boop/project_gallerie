@@ -86,7 +86,33 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
   const [returnItdrAttachment, setReturnItdrAttachment] = useState('');
   const [returnItdrAttachmentName, setReturnItdrAttachmentName] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | 'All'>('All');
-  const [activeTab, setActiveTab] = useState<DeliveryTab>('requests');
+  const allowedTabs = useMemo(() => {
+    const tabs: DeliveryTab[] = [];
+    if (userPermissions?.canViewDeliveryRequests ?? true) tabs.push('requests');
+    if (userPermissions?.canViewDeliveryActive ?? true) tabs.push('active');
+    if (userPermissions?.canViewDeliveryRescheduled ?? true) tabs.push('rescheduled');
+    if (userPermissions?.canViewDeliveryPending ?? true) tabs.push('pending');
+    if (userPermissions?.canViewDeliveryDelivered ?? true) tabs.push('delivered');
+    if (userPermissions?.canViewDeliveryFailed ?? true) tabs.push('failed');
+    return tabs;
+  }, [userPermissions]);
+
+  const [activeTab, setActiveTab] = useState<DeliveryTab>(() => {
+    if (userPermissions?.canViewDeliveryRequests ?? true) return 'requests';
+    if (userPermissions?.canViewDeliveryActive ?? true) return 'active';
+    if (userPermissions?.canViewDeliveryRescheduled ?? true) return 'rescheduled';
+    if (userPermissions?.canViewDeliveryPending ?? true) return 'pending';
+    if (userPermissions?.canViewDeliveryDelivered ?? true) return 'delivered';
+    if (userPermissions?.canViewDeliveryFailed ?? true) return 'failed';
+    return 'requests';
+  });
+
+  useEffect(() => {
+    if (allowedTabs.length > 0 && !allowedTabs.includes(activeTab)) {
+      setActiveTab(allowedTabs[0]);
+    }
+  }, [allowedTabs, activeTab]);
+
   const [now, setNow] = useState(() => new Date());
   const { pushNotification } = useNotifications();
   const notifiedSalesRef = useRef<Set<string>>(new Set());
@@ -564,12 +590,7 @@ return (
                 { id: 'pending', label: 'Pending', icon: Clock, count: tabCounts.pending, color: '#ffb900' },
                 { id: 'delivered', label: 'Delivered', icon: CheckCircle2, count: tabCounts.delivered, color: '#0078d4' },
                 { id: 'failed', label: 'Failed', icon: AlertCircle, count: tabCounts.failed, color: '#d13438' }
-              ].filter(tab => {
-                if (tab.id === 'requests') {
-                  return true;
-                }
-                return true;
-              }).map(tab => {
+              ].filter(tab => allowedTabs.includes(tab.id as DeliveryTab)).map(tab => {
                 const isActive = activeTab === tab.id;
                 return (
                   <motion.button

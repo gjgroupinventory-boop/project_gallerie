@@ -104,6 +104,12 @@ export const getDefaultPermissions = (role: UserRole): UserPermissions => {
         dashboardShowGallerySchedule: true,
         dashboardShowDistributionChart: true,
         dashboardShowTeamPresence: true,
+        canViewDeliveryRequests: true,
+        canViewDeliveryActive: true,
+        canViewDeliveryRescheduled: true,
+        canViewDeliveryPending: true,
+        canViewDeliveryDelivered: true,
+        canViewDeliveryFailed: true,
         accessibleTabs: getDefaultAccessibleTabs(UserRole.ADMIN),
       };
     case UserRole.INVENTORY_PERSONNEL:
@@ -139,6 +145,12 @@ export const getDefaultPermissions = (role: UserRole): UserPermissions => {
         dashboardShowGallerySchedule: true,
         dashboardShowDistributionChart: true,
         dashboardShowTeamPresence: true,
+        canViewDeliveryRequests: true,
+        canViewDeliveryActive: true,
+        canViewDeliveryRescheduled: true,
+        canViewDeliveryPending: true,
+        canViewDeliveryDelivered: true,
+        canViewDeliveryFailed: true,
         accessibleTabs: getDefaultAccessibleTabs(UserRole.INVENTORY_PERSONNEL),
       };
     case UserRole.BRANCH_USER:
@@ -174,6 +186,12 @@ export const getDefaultPermissions = (role: UserRole): UserPermissions => {
         dashboardShowGallerySchedule: true,
         dashboardShowDistributionChart: true,
         dashboardShowTeamPresence: true,
+        canViewDeliveryRequests: true,
+        canViewDeliveryActive: true,
+        canViewDeliveryRescheduled: true,
+        canViewDeliveryPending: true,
+        canViewDeliveryDelivered: true,
+        canViewDeliveryFailed: true,
         accessibleTabs: getDefaultAccessibleTabs(UserRole.BRANCH_USER),
       };
     case UserRole.EXCLUSIVE:
@@ -209,6 +227,12 @@ export const getDefaultPermissions = (role: UserRole): UserPermissions => {
         dashboardShowGallerySchedule: false,
         dashboardShowDistributionChart: false,
         dashboardShowTeamPresence: false,
+        canViewDeliveryRequests: false,
+        canViewDeliveryActive: false,
+        canViewDeliveryRescheduled: false,
+        canViewDeliveryPending: false,
+        canViewDeliveryDelivered: false,
+        canViewDeliveryFailed: false,
         accessibleTabs: getDefaultAccessibleTabs(UserRole.EXCLUSIVE),
       };
     default:
@@ -244,6 +268,12 @@ export const getDefaultPermissions = (role: UserRole): UserPermissions => {
         dashboardShowGallerySchedule: false,
         dashboardShowDistributionChart: false,
         dashboardShowTeamPresence: false,
+        canViewDeliveryRequests: false,
+        canViewDeliveryActive: false,
+        canViewDeliveryRescheduled: false,
+        canViewDeliveryPending: false,
+        canViewDeliveryDelivered: false,
+        canViewDeliveryFailed: false,
         accessibleTabs: getDefaultAccessibleTabs(UserRole.BRANCH_USER),
       };
   }

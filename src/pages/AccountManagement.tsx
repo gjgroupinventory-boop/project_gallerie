@@ -149,6 +149,40 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         </div>
 
         <div className="pt-4 border-t border-neutral-100">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-4">Delivery Tabs Control</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'canViewDeliveryRequests', label: 'Delivery Requests (Tab)' },
+              { key: 'canViewDeliveryActive', label: 'Delivery Active (Tab)' },
+              { key: 'canViewDeliveryRescheduled', label: 'Delivery Rescheduled (Tab)' },
+              { key: 'canViewDeliveryPending', label: 'Delivery Pending (Tab)' },
+              { key: 'canViewDeliveryDelivered', label: 'Delivery Delivered (Tab)' },
+              { key: 'canViewDeliveryFailed', label: 'Delivery Failed (Tab)' },
+            ].map(({ key, label }) => (
+              <label key={key} className="flex items-center space-x-3 cursor-pointer group">
+                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${formData.permissions[key as keyof UserPermissions]
+                  ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm'
+                  : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                  }`}>
+                  {formData.permissions[key as keyof UserPermissions] && (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={!!formData.permissions[key as keyof UserPermissions]}
+                  onChange={() => handlePermissionChange(key as keyof UserPermissions)}
+                />
+                <span className="text-sm font-medium text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-neutral-100">
           <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-4">Dashboard Cards & Views</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
@@ -711,6 +745,52 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
                     { key: 'canViewExhibit', label: 'Exhibit Artworks' },
                     { key: 'canViewForFraming', label: 'Framing Artworks' },
                     { key: 'canViewBackToArtist', label: 'Back to Artist Artworks' },
+                  ].map(({ key, label }) => {
+                    const isChecked = !!presetPermissions[key as keyof UserPermissions];
+                    return (
+                      <label key={key} className="flex items-center space-x-3 cursor-pointer group select-none">
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                          isChecked ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm' : 'bg-white border-neutral-300 group-hover:border-neutral-400'
+                        }`}>
+                          {isChecked && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={isChecked}
+                          onChange={() => {
+                            const nextPermissions = {
+                              ...presetPermissions,
+                              [key]: !presetPermissions[key as keyof UserPermissions]
+                            };
+                            setPresetPermissions(nextPermissions);
+                          }}
+                        />
+                        <span className="text-xs font-semibold text-neutral-700 group-hover:text-neutral-900 transition-colors">{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Delivery Tabs Control */}
+              <div className="bg-neutral-50/40 rounded-lg p-5 border border-neutral-200/60 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider border-b border-neutral-200/80 pb-2.5 flex items-center justify-between">
+                  <span>Delivery Tabs Control</span>
+                  <span className="text-[10px] text-neutral-400 font-normal normal-case">Logistics sub-tab visibilities</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  {[
+                    { key: 'canViewDeliveryRequests', label: 'Delivery Requests (Tab)' },
+                    { key: 'canViewDeliveryActive', label: 'Delivery Active (Tab)' },
+                    { key: 'canViewDeliveryRescheduled', label: 'Delivery Rescheduled (Tab)' },
+                    { key: 'canViewDeliveryPending', label: 'Delivery Pending (Tab)' },
+                    { key: 'canViewDeliveryDelivered', label: 'Delivery Delivered (Tab)' },
+                    { key: 'canViewDeliveryFailed', label: 'Delivery Failed (Tab)' },
                   ].map(({ key, label }) => {
                     const isChecked = !!presetPermissions[key as keyof UserPermissions];
                     return (
