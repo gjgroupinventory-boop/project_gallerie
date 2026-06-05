@@ -107,6 +107,7 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
         const lowerTitle = newNotif.title.toLowerCase();
         const lowerMsg = newNotif.message.toLowerCase();
         const isRequest = newNotif.isImportant || 
+                          lowerTitle.includes('transfer') || lowerMsg.includes('transfer') ||
                           lowerTitle.includes('request') || lowerMsg.includes('request') ||
                           lowerTitle.includes('awaiting') || lowerTitle.includes('pending') ||
                           lowerTitle.includes('declared') || lowerTitle.includes('action required');
@@ -421,6 +422,7 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
         const lowerTitle = activeToast.title.toLowerCase();
         const lowerMsg = activeToast.message.toLowerCase();
         const isRequest = activeToast.isImportant || 
+                          lowerTitle.includes('transfer') || lowerMsg.includes('transfer') ||
                           lowerTitle.includes('request') || lowerMsg.includes('request') ||
                           lowerTitle.includes('awaiting') || lowerTitle.includes('pending') ||
                           lowerTitle.includes('declared') || lowerTitle.includes('action required');

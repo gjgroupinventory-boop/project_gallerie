@@ -43,14 +43,14 @@ export const useNotifications = () => {
     (async () => {
       if (IS_DEMO_MODE) return;
       try {
-        const persistentNotif = {
+        const { isImportant, ...dbNotif } = {
           ...newNotif,
           items: newNotif.items?.map(item => ({
             ...item,
             imageUrl: undefined // Remove base64 data to save DB space
           }))
         };
-        const { error } = await supabase.from('notifications').insert(mapToSnakeCase(persistentNotif));
+        const { error } = await supabase.from('notifications').insert(mapToSnakeCase(dbNotif));
         if (error) throw error;
       } catch (error) {
         console.error('Error saving notification to Supabase', error);
