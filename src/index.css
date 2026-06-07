@@ -83,3 +83,8 @@
   display: none;
   /* Chrome, Safari and Opera */
 }
+
+/* Force all dialog modal cards to be rectangular */
+[role="dialog"] div {
+  border-radius: 0px !important;
+}
