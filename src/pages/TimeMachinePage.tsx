@@ -14,6 +14,8 @@ interface TimeMachinePageProps {
   onViewArtwork?: (id: string) => void;
   exclusiveBranches?: string[];
   userPermissions?: UserPermissions;
+  timeTravelDate?: string | null;
+  setTimeTravelDate?: (date: string | null) => void;
 }
 
 const TimeMachinePage: React.FC<TimeMachinePageProps> = ({
@@ -26,12 +28,37 @@ const TimeMachinePage: React.FC<TimeMachinePageProps> = ({
   framerRecords = [],
   onViewArtwork,
   exclusiveBranches = [],
-  userPermissions
+  userPermissions,
+  timeTravelDate,
+  setTimeTravelDate
 }) => {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
+
+  // Update selection parameters when global time travel date changes
+  useEffect(() => {
+    if (timeTravelDate) {
+      const date = new Date(timeTravelDate);
+      setSelectedYear(date.getFullYear());
+      setSelectedMonth(date.getMonth() + 1);
+      setSelectedDay(date.getDate());
+      setSelectedDate(timeTravelDate);
+    }
+  }, [timeTravelDate]);
+
+  // Update global travel date when local selection changes
+  useEffect(() => {
+    if (setTimeTravelDate && selectedDate !== timeTravelDate) {
+      const todayStr = new Date().toISOString().substring(0, 10);
+      if (selectedDate === todayStr) {
+        setTimeTravelDate(null);
+      } else {
+        setTimeTravelDate(selectedDate);
+      }
+    }
+  }, [selectedDate, timeTravelDate, setTimeTravelDate]);
   const [searchTerm, setSearchTerm] = useState('');
   const [branchFilter, setBranchFilter] = useState<string>('All');
   const [activeFilter, setActiveFilter] = useState<string>('ALL');

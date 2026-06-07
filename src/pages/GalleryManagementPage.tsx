@@ -100,6 +100,7 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
     const isRestricted =
       (activeTab === 'branches' && !props.userPermissions.canManageEvents && !props.userPermissions.canAddArtwork) ||
       ((activeTab === 'events' || activeTab === 'auctions') && !props.userPermissions.canManageEvents) ||
+      (activeTab === 'auctions' && props.currentUser?.role === 'Branch User') ||
       (activeTab === 'sales' && !props.userPermissions.canViewSalesHistory) ||
       (activeTab === 'reservations' && !props.userPermissions.canViewReserved) ||
       (activeTab === 'returned' && !props.userPermissions.canViewBackToArtist) ||
@@ -109,7 +110,7 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
     if (isRestricted) {
       handleTabChange('inventory');
     }
-  }, [activeTab, props.userPermissions]);
+  }, [activeTab, props.userPermissions, props.currentUser]);
 
   const filteredArtworks = useMemo(() => {
     return (props.artworks || []).filter(art => {
@@ -185,10 +186,12 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                   <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-400 truncate">Exhibitions</span>
                   <span className="mt-1 text-xl font-black text-white">{totalExhibitions.toLocaleString()}</span>
                 </div>
-                <div className="flex flex-col px-4 py-3 rounded-xl bg-white/5 border border-white/5 min-w-0 sm:min-w-[120px] hover:bg-white/10 transition-colors">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-400 truncate">Auctions</span>
-                  <span className="mt-1 text-xl font-black text-white">{totalAuctions.toLocaleString()}</span>
-                </div>
+                {props.currentUser?.role !== 'Branch User' && (
+                  <div className="flex flex-col px-4 py-3 rounded-xl bg-white/5 border border-white/5 min-w-0 sm:min-w-[120px] hover:bg-white/10 transition-colors">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-400 truncate">Auctions</span>
+                    <span className="mt-1 text-xl font-black text-white">{totalAuctions.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -238,18 +241,20 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                       </span>
                       <span>Exhibitions</span>
                     </button>
-                    <button
-                      onClick={() => handleTabChange('auctions')}
-                      className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'auctions'
-                        ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
-                        : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                        }`}
-                    >
-                      <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-45 ${activeTab === 'auctions' ? 'text-amber-600' : 'text-amber-400'}`}>
-                        <Gavel size={18} />
-                      </span>
-                      <span>For Auction</span>
-                    </button>
+                    {props.currentUser?.role !== 'Branch User' && (
+                      <button
+                        onClick={() => handleTabChange('auctions')}
+                        className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'auctions'
+                          ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
+                          : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                          }`}
+                      >
+                        <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-45 ${activeTab === 'auctions' ? 'text-amber-600' : 'text-amber-400'}`}>
+                          <Gavel size={18} />
+                        </span>
+                        <span>For Auction</span>
+                      </button>
+                    )}
                   </>
                 )}
                 {props.userPermissions?.canViewSalesHistory && (

@@ -18,7 +18,7 @@ interface SalesViewProps {
 const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddInstallment, onDeleteSale, onViewArtwork }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBranch, setSelectedBranch] = useState<string>('All');
-  const [paymentStatus, setPaymentStatus] = useState<'Fully Paid' | 'Partially Paid'>('Fully Paid');
+  const [paymentStatus, setPaymentStatus] = useState<'All' | 'Fully Paid' | 'Partially Paid'>('All');
   const [isInstallmentModalOpen, setIsInstallmentModalOpen] = useState(false);
   const [selectedPartialSale, setSelectedPartialSale] = useState<SaleRecord | null>(null);
   const [selectedSaleDetail, setSelectedSaleDetail] = useState<SaleRecord | null>(null);
@@ -202,7 +202,7 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
     const totalPaid = (sale.downpayment || 0) + totalInstallments;
 
     const isPartial = !!(sale.downpayment && (totalPaid < price || price === 0));
-    const matchesPayment = paymentStatus === 'Partially Paid' ? isPartial : !isPartial;
+    const matchesPayment = paymentStatus === 'All' ? true : paymentStatus === 'Partially Paid' ? isPartial : !isPartial;
 
     return matchesSearch && matchesBranch && matchesPayment;
   }).sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
@@ -214,7 +214,23 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
 
       {/* Dashboard Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
+        {/* Card 1: Total Gross Sales */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setPaymentStatus('All')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setPaymentStatus('All');
+            }
+          }}
+          className={`p-5 rounded-2xl border transition-all duration-200 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 group ${
+            paymentStatus === 'All'
+              ? 'bg-neutral-50/70 border-neutral-800 shadow-md ring-2 ring-neutral-900'
+              : 'bg-white border-neutral-100 shadow-sm'
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Gross Sales</h4>
             <div className="p-2 bg-neutral-900 text-white rounded-lg group-hover:bg-neutral-950 transition-all duration-300 shadow-lg shadow-neutral-900/20">
@@ -225,7 +241,23 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
           <p className="text-xs text-neutral-500 mt-1 font-medium">Total value of {stats.totalSalesCount} sold artworks</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-emerald-500">
+        {/* Card 2: Collected Revenue */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setPaymentStatus('Fully Paid')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setPaymentStatus('Fully Paid');
+            }
+          }}
+          className={`p-5 rounded-2xl border border-l-4 border-l-emerald-500 transition-all duration-200 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 group ${
+            paymentStatus === 'Fully Paid'
+              ? 'bg-emerald-50/20 border-emerald-500 shadow-md ring-2 ring-emerald-500'
+              : 'bg-white border-neutral-100 shadow-sm'
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Collected Revenue</h4>
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
@@ -243,7 +275,23 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-orange-500">
+        {/* Card 3: Balance to Collect */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setPaymentStatus('Partially Paid')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setPaymentStatus('Partially Paid');
+            }
+          }}
+          className={`p-5 rounded-2xl border border-l-4 border-l-orange-500 transition-all duration-200 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 group ${
+            paymentStatus === 'Partially Paid'
+              ? 'bg-orange-50/20 border-orange-500 shadow-md ring-2 ring-orange-500'
+              : 'bg-white border-neutral-100 shadow-sm'
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Balance to Collect</h4>
             <div className="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
@@ -254,7 +302,23 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
           <p className="text-xs text-neutral-500 mt-1 font-medium">From {stats.downpaymentCount} accounts</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
+        {/* Card 4: Active Partial */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setPaymentStatus('Partially Paid')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setPaymentStatus('Partially Paid');
+            }
+          }}
+          className={`p-5 rounded-2xl border border-l-4 border-l-blue-500 transition-all duration-200 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 group ${
+            paymentStatus === 'Partially Paid'
+              ? 'bg-blue-50/20 border-blue-500 shadow-md ring-2 ring-blue-500'
+              : 'bg-white border-neutral-100 shadow-sm'
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Active Partial</h4>
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
@@ -269,20 +333,32 @@ const SalesView: React.FC<SalesViewProps> = ({ sales, artworks, branches, onAddI
       {/* Primary Navigation Sub-tabs */}
       <div className="flex items-center gap-2 p-1 bg-neutral-100 rounded-2xl inline-flex">
         <button
+          onClick={() => setPaymentStatus('All')}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            paymentStatus === 'All'
+              ? 'bg-white text-neutral-900 shadow-sm ring-1 ring-black/5'
+              : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50'
+          }`}
+        >
+          All Sales
+        </button>
+        <button
           onClick={() => setPaymentStatus('Fully Paid')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${paymentStatus === 'Fully Paid'
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            paymentStatus === 'Fully Paid'
               ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-black/5'
               : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50'
-            }`}
+          }`}
         >
           Fully Paid Artworks
         </button>
         <button
           onClick={() => setPaymentStatus('Partially Paid')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${paymentStatus === 'Partially Paid'
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            paymentStatus === 'Partially Paid'
               ? 'bg-white text-orange-700 shadow-sm ring-1 ring-black/5'
               : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50'
-            }`}
+          }`}
         >
           Partially Paid (Installments)
         </button>

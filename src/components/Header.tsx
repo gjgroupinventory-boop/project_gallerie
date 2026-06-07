@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserRole, AppNotification, Artwork, UserPermissions } from '../types';
-import { ArrowLeft, Bell, Check, Clock, Info, LogOut, User as UserIcon, Monitor, MessageSquare, Menu, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Bell, Check, Clock, Info, LogOut, User as UserIcon, Monitor, MessageSquare, Menu, AlertTriangle, Bookmark, ShoppingBag, Truck, XCircle, ClipboardCheck, Shield, Gavel, Box } from 'lucide-react';
 import NotificationsModal from './NotificationsModal';
 import NotificationDetailModal from './NotificationDetailModal';
 
@@ -77,6 +77,72 @@ const playNotificationSound = (isImportant: boolean) => {
   }
 };
 
+export const getNotificationIconAndStyle = (title: string, message: string, type: string) => {
+  const t = (title || '').toLowerCase();
+  const m = (message || '').toLowerCase();
+
+  if (t.includes('cancel') || m.includes('cancel') || t.includes('decline') || m.includes('decline')) {
+    return {
+      icon: <XCircle size={14} />,
+      classes: 'bg-red-50 text-red-650 border border-red-200'
+    };
+  }
+  if (t.includes('reserve') || m.includes('reserve')) {
+    return {
+      icon: <Bookmark size={14} />,
+      classes: 'bg-amber-50 text-amber-600 border border-amber-200'
+    };
+  }
+  if (t.includes('transfer') || m.includes('transfer') || t.includes('logistics') || m.includes('logistics') || t.includes('delivery') || m.includes('delivery')) {
+    return {
+      icon: <Truck size={14} />,
+      classes: 'bg-blue-50 text-blue-600 border border-blue-200'
+    };
+  }
+  if (t.includes('auction') || m.includes('auction') || t.includes('event') || m.includes('event') || t.includes('sent to') || m.includes('assigned to')) {
+    return {
+      icon: <Gavel size={14} />,
+      classes: 'bg-indigo-50 text-indigo-650 border border-indigo-200'
+    };
+  }
+  if (t.includes('sale') || m.includes('sale') || t.includes('payment') || m.includes('payment') || t.includes('declared') || m.includes('declared')) {
+    return {
+      icon: <ShoppingBag size={14} />,
+      classes: 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+    };
+  }
+  if (t.includes('audit') || m.includes('audit')) {
+    return {
+      icon: <ClipboardCheck size={14} />,
+      classes: 'bg-teal-50 text-teal-600 border border-teal-200'
+    };
+  }
+  if (t.includes('account') || m.includes('account') || t.includes('permission') || m.includes('permission') || t.includes('role') || m.includes('role')) {
+    return {
+      icon: <Shield size={14} />,
+      classes: 'bg-purple-50 text-purple-600 border border-purple-200'
+    };
+  }
+
+  // General fallbacks based on type
+  if (type === 'sales') {
+    return {
+      icon: <ShoppingBag size={14} />,
+      classes: 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+    };
+  }
+  if (type === 'inventory') {
+    return {
+      icon: <Box size={14} />,
+      classes: 'bg-neutral-50 text-neutral-700 border border-neutral-200'
+    };
+  }
+  return {
+    icon: <Info size={14} />,
+    classes: 'bg-neutral-50 text-neutral-600 border border-neutral-200'
+  };
+};
+
 const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unreadChatCount = 0, onMarkRead, onLogout, onViewProfile, userName, onBackToDashboard, historyStack = [], onViewChat, artworks, onViewArtwork, onDeleteNotifications, zoomLevel, setZoomLevel, permissions, onToggleMobileMenu }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -94,11 +160,23 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
   const [isExiting, setIsExiting] = useState(false);
   const prevNotificationsRef = useRef<AppNotification[]>(notifications);
 
+  const isInitialLoadRef = useRef(true);
+
   useEffect(() => {
-    // Only fire toast for newly added notifications
-    if (notifications.length > prevNotificationsRef.current.length) {
-      const newNotif = notifications[0];
-      const isActuallyNew = new Date().getTime() - new Date(newNotif.timestamp).getTime() < 15000;
+    if (isInitialLoadRef.current) {
+      if (notifications.length > 0) {
+        prevNotificationsRef.current = notifications;
+        isInitialLoadRef.current = false;
+      }
+      return;
+    }
+
+    // Detect new notifications by ID comparison rather than list length
+    const newNotifications = notifications.filter(n => !prevNotificationsRef.current.some(pn => pn.id === n.id));
+    if (newNotifications.length > 0) {
+      const newNotif = newNotifications[0];
+      const timeDiff = Math.abs(new Date().getTime() - new Date(newNotif.timestamp).getTime());
+      const isActuallyNew = timeDiff < 120000; // 2 minutes window, tolerating clock skew
       if (newNotif && !newNotif.isRead && isActuallyNew) {
         setActiveToast(newNotif);
         setIsExiting(false);
@@ -328,11 +406,22 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
                         }}
                         className={`w-full text-left p-4 hover:bg-neutral-50 transition-colors flex items-start space-x-3 ${!n.isRead ? 'bg-neutral-50/50' : ''}`}
                       >
-                        <div className={`mt-0.5 p-1.5 rounded-lg ${n.type === 'inventory' ? 'bg-neutral-200 text-neutral-700' :
-                          n.type === 'sales' ? 'bg-neutral-200 text-neutral-700' : 'bg-neutral-100 text-neutral-600'
-                          }`}>
-                          <Info size={14} />
-                        </div>
+                        {(() => {
+                          const art = n.artworkId ? artworks.find(a => String(a.id) === String(n.artworkId)) : null;
+                          if (art && art.imageUrl) {
+                            return (
+                              <div className="w-8 h-8 rounded-none border border-neutral-200 overflow-hidden shrink-0 mt-0.5 shadow-sm">
+                                <img src={art.imageUrl} className="w-full h-full object-cover" alt="" />
+                              </div>
+                            );
+                          }
+                          const style = getNotificationIconAndStyle(n.title, n.message, n.type);
+                          return (
+                            <div className={`mt-0.5 p-1.5 rounded-none border ${style.classes}`}>
+                              {style.icon}
+                            </div>
+                          );
+                        })()}
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-neutral-900 leading-tight">{n.title}</p>
                           <p className="text-[11px] text-neutral-500 mt-0.5 line-clamp-2">{n.message}</p>
@@ -405,6 +494,7 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
             setShowAllNotifications(false);
           }}
           onDeleteNotifications={onDeleteNotifications}
+          artworks={artworks}
         />
       )}
 
@@ -432,32 +522,45 @@ const Header: React.FC<HeaderProps> = ({ userRole, activeTab, notifications, unr
               setSelectedNotification(activeToast);
               dismissToast();
             }}
-            className={`fixed top-20 right-8 z-[9999] max-w-sm w-full border shadow-2xl rounded-2xl p-4 flex items-start space-x-3 cursor-pointer select-none hover:shadow-neutral-200/50 hover:border-neutral-300 transform hover:-translate-y-0.5 transition-all duration-300 ${
+            className={`fixed top-20 right-8 z-[9999] max-w-sm w-full border shadow-2xl rounded-none p-4 flex items-start space-x-3 cursor-pointer select-none hover:shadow-neutral-200/50 hover:border-neutral-300 transform hover:-translate-y-0.5 transition-all duration-300 bg-white ${
               isExiting ? 'toast-exit' : 'toast-enter'
             } ${
               isRequest 
-                ? 'bg-amber-50/95 border-amber-400 shadow-amber-500/20' 
-                : 'bg-white border-neutral-200'
+                ? 'new-toast-glow-request' 
+                : 'new-toast-glow'
             }`}
           >
-            <div className={`mt-0.5 p-2 rounded-xl ${
-              isRequest
-                ? 'bg-amber-500 text-white animate-pulse'
-                : activeToast.type === 'inventory' ? 'bg-neutral-100 text-neutral-800' :
-                activeToast.type === 'sales' ? 'bg-neutral-100 text-neutral-800' : 
-                'bg-neutral-50 text-neutral-600'
-            }`}>
-              {isRequest ? (
-                <AlertTriangle size={16} />
-              ) : (
-                <Bell size={16} className="animate-bounce" />
-              )}
-            </div>
+            {(() => {
+              const art = activeToast.artworkId ? artworks.find(a => String(a.id) === String(activeToast.artworkId)) : null;
+              if (art && art.imageUrl) {
+                return (
+                  <div className="w-10 h-10 rounded-none border border-neutral-200 overflow-hidden shrink-0 mt-0.5 shadow-sm">
+                    <img src={art.imageUrl} className="w-full h-full object-cover" alt="" />
+                  </div>
+                );
+              }
+              return (
+                <div className={`mt-0.5 p-2 rounded-none border ${
+                  isRequest
+                    ? 'bg-red-50 text-red-650 border-red-200 animate-pulse'
+                    : 'bg-amber-50 text-amber-600 border-amber-200'
+                }`}>
+                  {isRequest ? (
+                    <AlertTriangle size={16} />
+                  ) : (
+                    <Bell size={16} className="animate-bounce" />
+                  )}
+                </div>
+              );
+            })()}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-black uppercase tracking-widest ${isRequest ? 'text-amber-700 animate-pulse' : 'text-neutral-400'}`}>
-                  {isRequest ? '⚠️ Action Required (Request)' : 'New Notification'}
-                </span>
+                <div className="flex items-center space-x-1.5">
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${isRequest ? 'text-red-650' : 'text-amber-600'}`}>
+                    {isRequest ? 'Action Required' : 'New Notification'}
+                  </span>
+                  <span className={`inline-block w-1.5 h-1.5 rounded-full animate-pulse ${isRequest ? 'bg-red-600' : 'bg-amber-500'}`} />
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

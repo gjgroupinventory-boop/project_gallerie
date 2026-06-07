@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { AppNotification, ChatMessage, Conversation, UserAccount } from '../../types';
 import { IS_DEMO_MODE } from '../../constants';
 import { mapFromSnakeCase } from '../../utils/supabaseUtils';
+import { userHasAccessToNotification } from '../../utils/notificationUtils';
 import {
   NOTIFICATION_BOOT_DELAY_MS,
   OPERATIONS_ROW_LIMITS,
@@ -40,7 +41,11 @@ export const useMessagingSync = ({
         .select('*')
         .order('created_at', { ascending: false })
         .limit(OPERATIONS_ROW_LIMITS.notifications);
-      if (notifRes.data) setNotifications(mapFromSnakeCase(notifRes.data) as AppNotification[]);
+      if (notifRes.data) {
+        const parsed = mapFromSnakeCase(notifRes.data) as AppNotification[];
+        const filtered = parsed.filter(n => userHasAccessToNotification(currentUser, n));
+        setNotifications(filtered);
+      }
     };
 
     const timer = window.setTimeout(() => {
@@ -54,6 +59,12 @@ export const useMessagingSync = ({
       }
 
       const mappedNotification = mapFromSnakeCase(payload.new) as AppNotification;
+      
+      // Filter out notifications that the user does not have access to
+      if (!userHasAccessToNotification(currentUser, mappedNotification)) {
+        return;
+      }
+
       if (payload.eventType === 'INSERT') {
         setNotifications(prev => upsertRealtimeRecord(prev, mappedNotification, OPERATIONS_ROW_LIMITS.notifications));
         

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ShoppingBag, Sparkles, Trash2, Image as ImageIcon, CheckCircle2, Clock, ArrowRightLeft, Frame, RotateCcw, ArrowLeft, ClipboardCheck, ChevronRight, AlertTriangle, Upload, Wrench, Tag } from 'lucide-react';
+import { X, ShoppingBag, Sparkles, Trash2, Image as ImageIcon, CheckCircle2, Clock, ArrowRightLeft, Frame, RotateCcw, ArrowLeft, ClipboardCheck, ChevronRight, AlertTriangle, Upload, Wrench, Tag, User, Mail, Phone, UserCheck, FileText, Calendar } from 'lucide-react';
 import { Artwork, UserPermissions, ExhibitionEvent } from '../../types';
 import { OptimizedImage } from '../OptimizedImage';
 import { PhoneInput } from '../PhoneInput';
+import { Modal } from '../Modal';
 import { OptimizedTextarea } from '../OptimizedTextarea';
 import { compressBase64Image } from '../../services/imageService';
 
@@ -169,6 +170,9 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
 }) => {
   const [isTimelessReservation, setIsTimelessReservation] = useState(false);
   const [reservationEventName, setReservationEventName] = useState('');
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [validationErrorModalOpen, setValidationErrorModalOpen] = useState(false);
+  const [validationErrorsList, setValidationErrorsList] = useState<string[]>([]);
 
   if (!isOpen) return null;
 
@@ -252,6 +256,7 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
               onClick={() => {
                 onClose();
                 resetBulkModalState();
+                setShowValidationErrors(false);
               }}
               className="w-full flex items-center gap-4 text-[#605e5c] hover:text-[#323130] transition-colors"
             >
@@ -359,17 +364,28 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                         <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Client Identity</h4>
                         <div className="grid grid-cols-1 gap-4">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Client Name <span className="text-[#a4262c]">*</span></label>
-                            <input autoFocus type="text" value={bulkActionValue} onChange={e => setBulkActionValue(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]" placeholder="Type client name..." />
+                            <label className={`text-[10px] font-bold uppercase ml-1 flex items-center gap-1.5 ${showValidationErrors && !bulkActionValue ? "text-[#a4262c] font-black" : "text-[#605e5c]"}`}>
+                              <User size={12} className={showValidationErrors && !bulkActionValue ? "text-[#a4262c]" : "text-[#a19f9d]"} />
+                              Client Name <span className="text-[#a4262c]">*</span>
+                            </label>
+                            <input autoFocus type="text" value={bulkActionValue} onChange={e => setBulkActionValue(e.target.value)} className={`w-full h-11 px-4 bg-[#faf9f8] border rounded-sm text-sm font-bold text-[#323130] focus:outline-none transition-all ${showValidationErrors && !bulkActionValue ? "border-[#a4262c] ring-1 ring-[#a4262c]" : "border-[#edebe9]"}`} placeholder="Type client name..." />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Email Address</label>
+                              <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                                <Mail size={12} className="text-[#a19f9d]" />
+                                Email Address
+                              </label>
                               <input type="email" value={bulkClientEmail || ''} onChange={e => setBulkClientEmail?.(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]" placeholder="email@address.com" />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Mobile / Contact <span className="text-[#a4262c]">*</span></label>
-                              <PhoneInput value={bulkClientContact || ''} onChange={val => setBulkClientContact?.(val)} className="h-11" />
+                              <label className={`text-[10px] font-bold uppercase ml-1 flex items-center gap-1.5 ${showValidationErrors && (!bulkClientContact || bulkClientContact.replace(/\D/g, '').length < 7) ? "text-[#a4262c] font-black" : "text-[#605e5c]"}`}>
+                                <Phone size={12} className={showValidationErrors && (!bulkClientContact || bulkClientContact.replace(/\D/g, '').length < 7) ? "text-[#a4262c]" : "text-[#a19f9d]"} />
+                                Mobile / Contact <span className="text-[#a4262c]">*</span>
+                              </label>
+                              <div className={showValidationErrors && (!bulkClientContact || bulkClientContact.replace(/\D/g, '').length < 7) ? "border border-[#a4262c] ring-1 ring-[#a4262c] rounded-sm overflow-hidden" : ""}>
+                                <PhoneInput value={bulkClientContact || ''} onChange={val => setBulkClientContact?.(val)} className="h-11" />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -380,22 +396,28 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                         <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Audit Compliance</h4>
                         <div className="space-y-4">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Handling Agent Name <span className="text-[#a4262c]">*</span></label>
+                            <label className={`text-[10px] font-bold uppercase ml-1 flex items-center gap-1.5 ${showValidationErrors && !bulkHandlingAgentName?.trim() ? "text-[#a4262c] font-black" : "text-[#605e5c]"}`}>
+                              <UserCheck size={12} className={showValidationErrors && !bulkHandlingAgentName?.trim() ? "text-[#a4262c]" : "text-[#a19f9d]"} />
+                              Handling Agent Name <span className="text-[#a4262c]">*</span>
+                            </label>
                             <input
                               type="text"
                               placeholder="Enter handling agent's name..."
                               required
-                              className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]"
+                              className={`w-full h-11 px-4 bg-[#faf9f8] border rounded-sm text-sm font-bold text-[#323130] focus:outline-none transition-all ${showValidationErrors && !bulkHandlingAgentName?.trim() ? "border-[#a4262c] ring-1 ring-[#a4262c]" : "border-[#edebe9]"}`}
                               value={bulkHandlingAgentName || ''}
                               onChange={e => setBulkHandlingAgentName?.(e.target.value)}
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Sale Remarks / Audit Note <span className="text-[#a4262c]">*</span></label>
+                            <label className={`text-[10px] font-bold uppercase ml-1 flex items-center gap-1.5 ${showValidationErrors && !bulkSaleRemarks?.trim() ? "text-[#a4262c] font-black" : "text-[#605e5c]"}`}>
+                              <FileText size={12} className={showValidationErrors && !bulkSaleRemarks?.trim() ? "text-[#a4262c]" : "text-[#a19f9d]"} />
+                              Sale Remarks / Audit Note <span className="text-[#a4262c]">*</span>
+                            </label>
                             <textarea
                               placeholder="Required for audit compliance (e.g. client background, special terms...)"
                               required
-                              className="w-full min-h-[80px] p-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130] focus:bg-white transition-all resize-none"
+                              className={`w-full min-h-[80px] p-4 bg-[#faf9f8] border rounded-sm text-sm font-bold text-[#323130] focus:bg-white focus:outline-none transition-all resize-none ${showValidationErrors && !bulkSaleRemarks?.trim() ? "border-[#a4262c] ring-1 ring-[#a4262c]" : "border-[#edebe9]"}`}
                               value={bulkSaleRemarks || ''}
                               onChange={e => setBulkSaleRemarks?.(e.target.value)}
                             />
@@ -406,10 +428,16 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                       {/* Event Alignment Section */}
                       <div className="space-y-4">
                         <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Event Alignment</h4>
-                        <select value={bulkSaleEventId} onChange={e => setBulkSaleEventId(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]">
-                          <option value="">Select Event (Optional)...</option>
-                          {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-                        </select>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                            <Calendar size={12} className="text-[#a19f9d]" />
+                            Event Alignment (Optional)
+                          </label>
+                          <select value={bulkSaleEventId} onChange={e => setBulkSaleEventId(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]">
+                            <option value="">Select Event (Optional)...</option>
+                            {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+                          </select>
+                        </div>
                       </div>
 
                       {/* Asset Registry & Item Terms */}
@@ -511,28 +539,34 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                                       ))}
                                     </div>
 
-                                    {installmentEnabled && (
-                                      <div className="space-y-1.5 pt-1 animate-in slide-in-from-top-2 duration-200">
-                                        <span className="text-[9px] font-black text-[#605e5c] uppercase tracking-widest block">Authorized Downpayment</span>
-                                        <div className="relative group/input">
-                                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-[#323130]">₱</span>
-                                          <input
-                                            type="text"
-                                            inputMode="numeric"
-                                            value={bulkSaleDownpayments?.[art.id] || '0'}
-                                            onFocus={(e) => e.target.select()}
-                                            onChange={e => {
-                                              const val = e.target.value.replace(/[^0-9.]/g, '');
-                                              const parts = val.split('.');
-                                              if (parts.length > 2) parts.splice(2);
-                                              if (parts[0] && parts[0].length > 1) parts[0] = parts[0].replace(/^0+/, '') || '0';
-                                              setBulkSaleDownpayments?.(prev => ({ ...prev, [art.id]: parts.join('.') }));
-                                            }}
-                                            className="w-full h-9 pl-7 pr-4 bg-white border border-[#edebe9] rounded-sm text-right text-xs font-black text-[#323130] focus:border-[#323130] transition-all outline-none"
-                                          />
+                                    {installmentEnabled && (() => {
+                                      const dpVal = bulkSaleDownpayments?.[art.id];
+                                      const isDpInvalid = showValidationErrors && (!dpVal || parseFloat(dpVal) <= 0 || Number.isNaN(parseFloat(dpVal)));
+                                      return (
+                                        <div className="space-y-1.5 pt-1 animate-in slide-in-from-top-2 duration-200">
+                                          <span className={`text-[9px] font-black uppercase tracking-widest block ${isDpInvalid ? 'text-[#a4262c]' : 'text-[#605e5c]'}`}>Authorized Downpayment</span>
+                                          <div className="relative group/input">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-[#323130]">₱</span>
+                                            <input
+                                              type="text"
+                                              inputMode="numeric"
+                                              value={bulkSaleDownpayments?.[art.id] || '0'}
+                                              onFocus={(e) => e.target.select()}
+                                              onChange={e => {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                const parts = val.split('.');
+                                                if (parts.length > 2) parts.splice(2);
+                                                if (parts[0] && parts[0].length > 1) parts[0] = parts[0].replace(/^0+/, '') || '0';
+                                                setBulkSaleDownpayments?.(prev => ({ ...prev, [art.id]: parts.join('.') }));
+                                              }}
+                                              className={`w-full h-9 pl-7 pr-4 bg-white border rounded-sm text-right text-xs font-black text-[#323130] focus:border-[#323130] transition-all outline-none ${isDpInvalid ? 'border-[#a4262c] ring-1 ring-[#a4262c]' : 'border-[#edebe9]'}`}
+                                            />
+                                          </div>
                                         </div>
-                                        <p className="text-[9px] font-bold text-[#a19f9d] uppercase">Remaining: ₱{remainingBalance.toLocaleString()}</p>
-                                      </div>
+                                      );
+                                    })()}
+                                    {installmentEnabled && (
+                                      <p className="text-[9px] font-bold text-[#a19f9d] uppercase">Remaining: ₱{remainingBalance.toLocaleString()}</p>
                                     )}
                                   </div>
 
@@ -569,15 +603,37 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                         <ShoppingBag size={28} />
                       </div>
                       <p className="text-[10px] font-black text-[#a19f9d] uppercase tracking-[0.3em] mb-1">LOGISTICS GATE</p>
-                      <h3 className="text-sm font-black text-[#323130] uppercase mb-8 text-center">Evidence Intake</h3>
+                      <h3 className="text-sm font-black text-[#323130] uppercase mb-8 text-center">
+                        Evidence Intake <span style={{ color: '#a4262c' }} className="font-black text-sm ml-0.5">*</span>
+                      </h3>
 
                       <div className="w-full space-y-6">
                         <div className="flex bg-[#edebe9] p-0.5 rounded-sm">
-                          {(['itdr', 'rsa', 'orcr'] as const).map(t => (
-                            <button key={t} onClick={() => setActiveBulkAttachmentTab(t)} className={`flex-1 py-1 text-[9px] font-bold uppercase tracking-widest rounded-sm transition-all ${activeBulkAttachmentTab === t ? 'bg-white text-[#0078d4]' : 'text-[#605e5c]'}`}>
-                              {t === 'orcr' ? t : <>{t} <span className="text-[#a4262c]">*</span></>}
-                            </button>
-                          ))}
+                          {(['itdr', 'rsa', 'orcr'] as const).map(t => {
+                            const isMissing = showValidationErrors && (
+                              (t === 'itdr' && toAttachmentArray(bulkTempItdr).length === 0) ||
+                              (t === 'rsa' && toAttachmentArray(bulkTempRsa).length === 0)
+                            );
+                            return (
+                              <button 
+                                key={t} 
+                                onClick={() => setActiveBulkAttachmentTab(t)} 
+                                className={`flex-1 py-1 text-[9px] font-bold uppercase tracking-widest rounded-sm transition-all ${
+                                  activeBulkAttachmentTab === t 
+                                    ? 'bg-white text-[#0078d4] shadow-sm' 
+                                    : 'text-[#605e5c]'
+                                } ${isMissing ? 'border-2 border-[#a4262c] bg-red-50 text-[#a4262c]' : ''}`}
+                              >
+                                {t === 'orcr' ? (
+                                  t.toUpperCase()
+                                ) : (
+                                  <>
+                                    {t.toUpperCase()} <span style={{ color: '#a4262c' }} className="font-black text-sm ml-0.5">*</span>
+                                  </>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
 
                         <label className="relative block h-32 border-2 border-dashed border-[#c8c6c4] rounded-sm bg-white hover:border-[#0078d4] transition-all cursor-pointer">
@@ -632,11 +688,13 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                 {bulkActionModal.type === 'reserve' && (
                   <div className="max-w-3xl mx-auto space-y-8 text-left">
                     <div className="flex bg-[#f3f2f1] p-1 rounded-sm border border-[#edebe9]">
-                      {(['person', 'event', 'auction'] as const).map(t => (
-                        <button key={t} onClick={() => setReservationTab(t)} className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-sm transition-all ${reservationTab === t ? 'bg-white text-[#0078d4] shadow-sm' : 'text-[#605e5c]'}`}>
-                          {t}
-                        </button>
-                      ))}
+                      {(['person', 'event', 'auction'] as const)
+                        .filter(t => t !== 'auction' || (permissions?.canViewAuctioned ?? true))
+                        .map(t => (
+                          <button key={t} onClick={() => setReservationTab(t)} className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-sm transition-all ${reservationTab === t ? 'bg-white text-[#0078d4] shadow-sm' : 'text-[#605e5c]'}`}>
+                            {t}
+                          </button>
+                        ))}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -892,6 +950,7 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                   onClick={() => {
                     onClose();
                     resetBulkModalState();
+                    setShowValidationErrors(false);
                   }}
                   className="flex items-center gap-2.5 h-11 px-6 text-[11px] font-black uppercase tracking-widest text-[#605e5c] hover:bg-[#edebe9] transition-all rounded-sm border border-[#edebe9] bg-white"
                 >
@@ -903,6 +962,7 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
                   onClick={() => {
                     setBulkActionModal(null);
                     resetBulkModalState();
+                    setShowValidationErrors(false);
                   }}
                   className="flex items-center gap-2.5 h-11 px-6 text-[11px] font-black uppercase tracking-widest text-[#605e5c] hover:bg-[#edebe9] transition-all rounded-sm border border-[#edebe9] bg-white"
                 >
@@ -922,10 +982,55 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
 
             {bulkActionModal && (
               <button
-                onClick={onSubmit}
-                disabled={isStandardActionDisabled}
-                className={`h-12 px-10 rounded-sm text-[11px] font-black uppercase tracking-[0.2em] shadow-lg transition-all flex items-center gap-3 active:scale-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed ${
-                  bulkActionModal.type === 'delete' || (bulkActionModal.type === 'return' && returnType === 'Artist Reclaim') ? 'bg-[#a4262c] text-white' : 'bg-[#323130] text-white hover:bg-[#000000]'
+                onClick={() => {
+                  const errors: string[] = [];
+                  if (bulkActionModal.type === 'sale') {
+                    if (!bulkActionValue) errors.push("Client Name is required");
+                    if (!bulkClientContact || bulkClientContact.replace(/\D/g, '').length < 7) {
+                      errors.push("Valid Mobile/Contact Number is required (minimum 7 digits)");
+                    }
+                    if (!bulkHandlingAgentName?.trim()) errors.push("Handling Agent Name is required");
+                    if (!bulkSaleRemarks?.trim()) errors.push("Sale Remarks / Audit Note is required");
+                    if (toAttachmentArray(bulkTempItdr).length === 0) errors.push("IT/DR Document attachment is required");
+                    if (toAttachmentArray(bulkTempRsa).length === 0) errors.push("RSA Document attachment is required");
+                    
+                    cartArtworks.forEach(art => {
+                      const installmentEnabled = bulkSaleInstallmentsEnabled?.[art.id] ?? !!bulkSaleDownpayments?.[art.id];
+                      if (installmentEnabled) {
+                        const dpVal = bulkSaleDownpayments?.[art.id];
+                        if (!dpVal || parseFloat(dpVal) <= 0 || Number.isNaN(parseFloat(dpVal))) {
+                          errors.push(`Valid Downpayment is required for installment on "${art.title}"`);
+                        }
+                      }
+                    });
+                  } else if (bulkActionModal.type === 'transfer') {
+                    if (!bulkActionValue) errors.push("Destination branch is required");
+                    if (!bulkTempItdr) errors.push("IT/DR Document is required for transfers");
+                  } else if (bulkActionModal.type === 'framer') {
+                    if (!framerDamageDetails) errors.push("Framing details/damage description is required");
+                  } else if (bulkActionModal.type === 'return') {
+                    if (!returnReason) errors.push("Return reason is required");
+                    if (returnType === 'Artist Reclaim' && normalizedReturnProofImages.length === 0) {
+                      errors.push("Proof of return image is required for Artist Reclaim");
+                    }
+                  } else if (bulkActionModal.type === 'reserve') {
+                    if (reservationTab === 'person' && !reservationClient) errors.push("Client Name is required");
+                    else if (reservationTab === 'event' && !reservationEventId) errors.push("Event allocation is required");
+                    else if (reservationTab === 'auction' && !reservationAuctionId) errors.push("Auction allocation is required");
+                  }
+
+                  if (errors.length > 0) {
+                    setValidationErrorsList(errors);
+                    setValidationErrorModalOpen(true);
+                    setShowValidationErrors(true);
+                  } else {
+                    onSubmit();
+                  }
+                }}
+                className={`h-12 px-10 rounded-sm text-[11px] font-black uppercase tracking-[0.2em] shadow-lg transition-all flex items-center gap-3 active:scale-95 cursor-pointer ${
+                  isStandardActionDisabled
+                    ? 'bg-[#8a8886] text-white hover:bg-[#7a7876]'
+                    : (bulkActionModal.type === 'delete' || (bulkActionModal.type === 'return' && returnType === 'Artist Reclaim') ? 'bg-[#a4262c] text-white hover:bg-[#821f24]' : 'bg-[#323130] text-white hover:bg-[#000000]')
                 }`}
               >
                 <span>Authorize Sequence</span>
@@ -934,6 +1039,37 @@ export const BranchInventoryCart: React.FC<BranchInventoryCartProps> = ({
             )}
           </div>
         </div>
+
+        {validationErrorModalOpen && (
+          <Modal onClose={() => setValidationErrorModalOpen(false)} title="Validation Check Failed">
+            <div className="space-y-4 text-left">
+              <div className="p-4 bg-[#fff4f4] border-l-4 border-[#a4262c] text-[#a4262c] rounded-sm flex items-start gap-3">
+                <AlertTriangle className="shrink-0 mt-0.5" size={18} />
+                <div className="space-y-1">
+                  <p className="text-xs font-black uppercase tracking-wider">Required Fields Missing</p>
+                  <p className="text-[11px] font-medium leading-relaxed">
+                    Please provide the missing information highlighted in red on the form to authorize this sequence.
+                  </p>
+                </div>
+              </div>
+
+              <ul className="space-y-1.5 text-xs font-bold text-neutral-600 list-disc list-inside bg-neutral-50 p-4 rounded-sm border border-neutral-100">
+                {validationErrorsList.map((err, idx) => (
+                  <li key={idx} className="text-[#a4262c]">{err}</li>
+                ))}
+              </ul>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setValidationErrorModalOpen(false)}
+                  className="px-6 py-2 bg-neutral-900 text-white font-bold text-xs uppercase tracking-widest rounded-sm hover:bg-black transition-colors"
+                >
+                  Go Back & Fix
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
 
       </div>
     </div>,

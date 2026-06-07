@@ -41,6 +41,8 @@ interface UIContextType {
   setIsMasterViewOpen: React.Dispatch<React.SetStateAction<boolean>>;
   targetSaleId: string | null;
   setTargetSaleId: React.Dispatch<React.SetStateAction<string | null>>;
+  timeTravelDate: string | null;
+  setTimeTravelDate: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -57,6 +59,7 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [importStatus, setImportStatus] = useState<ImportStatus>({ isVisible: false });
   const [isMasterViewOpen, setIsMasterViewOpen] = useState(false);
   const [targetSaleId, setTargetSaleId] = useState<string | null>(null);
+  const [timeTravelDate, setTimeTravelDate] = useState<string | null>(null);
 
   return (
     <UIContext.Provider
@@ -71,7 +74,8 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         operationsView, setOperationsView,
         importStatus, setImportStatus,
         isMasterViewOpen, setIsMasterViewOpen,
-        targetSaleId, setTargetSaleId
+        targetSaleId, setTargetSaleId,
+        timeTravelDate, setTimeTravelDate
       }}
     >
       {children}

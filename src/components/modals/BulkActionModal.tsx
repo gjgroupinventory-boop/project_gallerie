@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ShoppingBag, AlertCircle, Trash2, Upload, Wrench, RefreshCcw, AlertTriangle, X, Clock, Tag } from 'lucide-react';
+import { ShoppingBag, AlertCircle, Trash2, Upload, Wrench, RefreshCcw, AlertTriangle, X, Clock, Tag, User, Mail, Phone, UserCheck, FileText, Calendar } from 'lucide-react';
 import { Modal } from '../Modal';
-import { ExhibitionEvent, Artwork } from '../../types';
+import { ExhibitionEvent, Artwork, UserPermissions } from '../../types';
 import { compressImage } from '../../utils/imageUtils';
 import { OptimizedTextarea } from '../OptimizedTextarea';
 import { PhoneInput } from '../PhoneInput';
@@ -9,6 +9,7 @@ import { PhoneInput } from '../PhoneInput';
 interface BulkActionModalProps {
     bulkActionModal: { type: string } | null;
     onClose: () => void;
+    permissions?: UserPermissions;
     // State setters and values
     selectedIds: string[];
     setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
@@ -111,7 +112,8 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
     framerDamageDetails, setFramerDamageDetails,
     returnType, setReturnType, returnReason, setReturnReason, returnProofImage, setReturnProofImage,
     bulkActionExtra, setBulkActionExtra,
-    onSubmit
+    onSubmit,
+    permissions
 }) => {
     if (!bulkActionModal) return null;
 
@@ -264,16 +266,25 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
                             <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Client Identity</h4>
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Client Name <span className="text-[#a4262c]">*</span></label>
+                                    <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                                        <User size={12} className="text-[#a19f9d]" />
+                                        Client Name <span className="text-[#a4262c]">*</span>
+                                    </label>
                                     <input autoFocus type="text" value={bulkActionValue} onChange={e => setBulkActionValue(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]" placeholder="Type client name..." />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Email Address</label>
+                                        <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                                            <Mail size={12} className="text-[#a19f9d]" />
+                                            Email Address
+                                        </label>
                                         <input type="email" value={bulkClientEmail || ''} onChange={e => setBulkClientEmail?.(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]" placeholder="email@address.com" />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Mobile / Contact <span className="text-[#a4262c]">*</span></label>
+                                        <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                                            <Phone size={12} className="text-[#a19f9d]" />
+                                            Mobile / Contact <span className="text-[#a4262c]">*</span>
+                                        </label>
                                         <PhoneInput value={bulkClientContact || ''} onChange={val => setBulkClientContact?.(val)} className="h-11" />
                                     </div>
                                 </div>
@@ -285,7 +296,10 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
                             <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Audit Compliance</h4>
                             <div className="space-y-4">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Handling Agent Name <span className="text-[#a4262c]">*</span></label>
+                                    <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                                        <UserCheck size={12} className="text-[#a19f9d]" />
+                                        Handling Agent Name <span className="text-[#a4262c]">*</span>
+                                    </label>
                                     <input
                                         type="text"
                                         placeholder="Enter handling agent's name..."
@@ -296,7 +310,10 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1">Sale Remarks / Audit Note <span className="text-[#a4262c]">*</span></label>
+                                    <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                                        <FileText size={12} className="text-[#a19f9d]" />
+                                        Sale Remarks / Audit Note <span className="text-[#a4262c]">*</span>
+                                    </label>
                                     <textarea
                                         placeholder="Required for audit compliance (e.g. client background, special terms...)"
                                         required
@@ -311,18 +328,24 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
                         {/* Event Alignment Section */}
                         <div className="space-y-4">
                             <h4 className="text-[11px] font-black text-[#605e5c] uppercase tracking-widest border-b border-[#f3f2f1] pb-2">Event Alignment</h4>
-                            <select value={bulkSaleEventId} onChange={e => setBulkSaleEventId(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]">
-                                <option value="">Select Event (Optional)...</option>
-                                {events.filter(e => {
-                                    if ((e as any).status === 'Recent' || (e as any).status === 'Closed') return false;
-                                    if ((e as any).isStrictDuration && (e as any).endDate) {
-                                        const end = new Date((e as any).endDate);
-                                        end.setHours(23, 59, 59, 999);
-                                        if (end.getTime() < Date.now()) return false;
-                                    }
-                                    return true;
-                                }).map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-                            </select>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#605e5c] uppercase ml-1 flex items-center gap-1.5">
+                                    <Calendar size={12} className="text-[#a19f9d]" />
+                                    Event Alignment (Optional)
+                                </label>
+                                <select value={bulkSaleEventId} onChange={e => setBulkSaleEventId(e.target.value)} className="w-full h-11 px-4 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130]">
+                                    <option value="">Select Event (Optional)...</option>
+                                    {events.filter(e => {
+                                        if ((e as any).status === 'Recent' || (e as any).status === 'Closed') return false;
+                                        if ((e as any).isStrictDuration && (e as any).endDate) {
+                                            const end = new Date((e as any).endDate);
+                                            end.setHours(23, 59, 59, 999);
+                                            if (end.getTime() < Date.now()) return false;
+                                        }
+                                        return true;
+                                    }).map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+                                </select>
+                            </div>
                         </div>
 
                         {/* Asset Registry & Item Terms */}
@@ -456,13 +479,21 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
                             <ShoppingBag size={28} />
                         </div>
                         <p className="text-[10px] font-black text-[#a19f9d] uppercase tracking-[0.3em] mb-1">LOGISTICS GATE</p>
-                        <h3 className="text-sm font-black text-[#323130] uppercase mb-8 text-center">Evidence Intake</h3>
+                        <h3 className="text-sm font-black text-[#323130] uppercase mb-8 text-center">
+                            Evidence Intake <span style={{ color: '#a4262c' }} className="font-black text-sm ml-0.5">*</span>
+                        </h3>
 
                         <div className="w-full space-y-6">
                             <div className="flex bg-[#edebe9] p-0.5 rounded-sm">
                                 {(['itdr', 'rsa', 'orcr'] as const).map(t => (
                                     <button key={t} onClick={() => setActiveBulkAttachmentTab(t)} className={`flex-1 py-1 text-[9px] font-bold uppercase tracking-widest rounded-sm transition-all ${activeBulkAttachmentTab === t ? 'bg-white text-[#0078d4]' : 'text-[#605e5c]'}`}>
-                                        {t === 'orcr' ? t : <>{t} <span className="text-[#a4262c]">*</span></>}
+                                        {t === 'orcr' ? (
+                                            t.toUpperCase()
+                                        ) : (
+                                            <>
+                                                {t.toUpperCase()} <span style={{ color: '#a4262c' }} className="font-black text-sm ml-0.5">*</span>
+                                            </>
+                                        )}
                                     </button>
                                 ))}
                             </div>
@@ -539,18 +570,20 @@ export const BulkActionModal: React.FC<BulkActionModalProps> = ({
             {bulkActionModal.type === 'reserve' && (
                 <div className="space-y-6">
                     <div className="bg-[#F3F2F1] p-1 rounded-sm border border-[#EDEBE9] flex">
-                        {(['person', 'event', 'auction'] as const).map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setReservationTab(tab)}
-                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${reservationTab === tab
-                                    ? 'bg-white text-[#0078D4] shadow-sm border border-[#EDEBE9]'
-                                    : 'text-[#605E5C] hover:text-[#323130]'
-                                    }`}
-                            >
-                                {tab === 'person' ? 'Person' : tab === 'event' ? 'Event' : 'Auction'}
-                            </button>
-                        ))}
+                        {(['person', 'event', 'auction'] as const)
+                            .filter(t => t !== 'auction' || (permissions?.canViewAuctioned ?? true))
+                            .map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setReservationTab(tab)}
+                                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${reservationTab === tab
+                                        ? 'bg-white text-[#0078D4] shadow-sm border border-[#EDEBE9]'
+                                        : 'text-[#605E5C] hover:text-[#323130]'
+                                        }`}
+                                >
+                                    {tab === 'person' ? 'Person' : tab === 'event' ? 'Event' : 'Auction'}
+                                </button>
+                            ))}
                     </div>
 
                     <div className="bg-white p-6 border border-[#E1E1E1] rounded-sm shadow-sm space-y-6">

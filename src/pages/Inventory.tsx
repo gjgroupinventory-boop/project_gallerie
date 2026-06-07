@@ -1723,8 +1723,6 @@ const Inventory: React.FC<InventoryProps> = ({
                                 </div>
                              )}
                           </div>
-  
-
                         </div>
                       </div>
                     )}
@@ -1732,7 +1730,9 @@ const Inventory: React.FC<InventoryProps> = ({
                     {bulkActionModal.type === 'reserve' && (
                       <div className="max-w-3xl mx-auto space-y-8">
                          <div className="flex bg-[#f3f2f1] p-1 rounded-sm border border-[#edebe9]">
-                            {(['person', 'event', 'auction'] as const).map(t => (
+                            {(['person', 'event', 'auction'] as const)
+                              .filter(t => t !== 'auction' || (permissions?.canViewAuctioned ?? true))
+                              .map(t => (
                               <button key={t} onClick={() => setReservationTab(t)} className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-sm transition-all ${reservationTab === t ? 'bg-white text-[#0078d4] shadow-sm' : 'text-[#605e5c]'}`}>
                                 {t}
                               </button>

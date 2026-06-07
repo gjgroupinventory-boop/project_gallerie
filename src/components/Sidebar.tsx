@@ -31,6 +31,7 @@ interface SidebarProps {
   currentUser?: any;
   transferRequests?: any[];
   returnRecords?: any[];
+  onViewProfile?: () => void;
 }
 
 interface MenuItem {
@@ -41,7 +42,7 @@ interface MenuItem {
   groupId: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole, userPermissions, onOpenOperationsBranches, isOpen = false, onClose, sales = [], currentUser, transferRequests = [], returnRecords = [] }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole, userPermissions, onOpenOperationsBranches, isOpen = false, onClose, sales = [], currentUser, transferRequests = [], returnRecords = [], onViewProfile }) => {
   const menuGroups = [
     { id: 'main', label: 'Main' },
     { id: 'inventory', label: 'Inventory' },
@@ -60,6 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole, us
     { id: 'requests', label: 'My Requests', icon: <MessageSquare />, groupId: 'sales' },
     { id: 'sales-history', label: 'Sales History', icon: ICONS.Sales, groupId: 'sales' },
     { id: 'deliveries', label: 'Delivery Management', icon: ICONS.Truck, groupId: 'inventory' },
+    { id: 'delivery-requests', label: 'Delivery Requests (Tab)', icon: <Package />, groupId: 'inventory' },
     { id: 'operations', label: 'Gallery Operations', icon: <Settings2 />, groupId: 'management' },
     { id: 'accounts', label: 'Branch Accounts', icon: ICONS.Users, groupId: 'management' },
     { id: 'audit-logs', label: 'System Audit Logs', icon: <ShieldEllipsis />, groupId: 'logs' },
@@ -387,23 +389,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole, us
         })}
       </nav>
 
-      <div className="p-4 border-t border-neutral-200 bg-neutral-50">
-        <div className="flex items-center space-x-3 px-2 py-2">
-          <div className="w-8 h-8 rounded bg-neutral-900 border border-neutral-800 flex items-center justify-center text-[10px] font-black text-white">
-            {userRole.substring(0, 1)}
+      <div className="p-4 border-t border-neutral-100 bg-neutral-50/50">
+        <div 
+          onClick={onViewProfile}
+          className="flex items-center space-x-3 px-3 py-2.5 rounded-xl border border-neutral-200/50 bg-white hover:bg-neutral-50 hover:border-neutral-250 hover:shadow-sm transition-all duration-300 group cursor-pointer"
+        >
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-neutral-900 via-neutral-850 to-neutral-700 flex items-center justify-center text-xs font-serif italic font-bold text-neutral-100 shadow-sm transition-transform duration-300 group-hover:scale-105">
+            {(currentUser?.name || currentUser?.fullName || userRole).substring(0, 1).toUpperCase()}
           </div>
           <div className="overflow-hidden flex-1">
-            <p className="text-[11px] font-semibold text-neutral-900 truncate">{userRole}</p>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <div className="flex items-center space-x-1">
-                <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
-                <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider">ENCRYPTED</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <span className="w-1 h-1 rounded-full bg-amber-500"></span>
-                <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider">AUDIT LOG</span>
-              </div>
-            </div>
+            <p className="text-xs font-bold text-neutral-800 truncate leading-none transition-colors group-hover:text-black">
+              {currentUser?.name || currentUser?.fullName || 'Active User'}
+            </p>
+            <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-1.5 truncate">
+              {userRole} {currentUser?.branch ? `• ${currentUser.branch}` : ''}
+            </p>
           </div>
         </div>
       </div>

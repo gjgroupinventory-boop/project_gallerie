@@ -5,6 +5,7 @@ import { IS_DEMO_MODE } from '../constants';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { generateUUID } from '../utils/idUtils';
+import { userHasAccessToNotification } from '../utils/notificationUtils';
 
 const generateId = () => generateUUID();
 const MAX_NOTIFICATIONS = 500;
@@ -35,10 +36,12 @@ export const useNotifications = () => {
       isImportant
     };
 
-    setNotifications(prev => {
-      const next = [newNotif, ...prev];
-      return next.length > MAX_NOTIFICATIONS ? next.slice(0, MAX_NOTIFICATIONS) : next;
-    });
+    if (userHasAccessToNotification(currentUser, newNotif)) {
+      setNotifications(prev => {
+        const next = [newNotif, ...prev];
+        return next.length > MAX_NOTIFICATIONS ? next.slice(0, MAX_NOTIFICATIONS) : next;
+      });
+    }
 
     (async () => {
       if (IS_DEMO_MODE) return;

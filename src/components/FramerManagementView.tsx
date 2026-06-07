@@ -18,7 +18,8 @@ import {
   Upload,
   Info,
   Building2,
-  RotateCcw
+  RotateCcw,
+  Package
 } from 'lucide-react';
 
 interface FramerManagementViewProps {
@@ -96,6 +97,7 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
   const [selectedBranch, setSelectedBranch] = useState<string>('All');
   const [selectedArtist, setSelectedArtist] = useState<string>('All');
   const [selectedRecord, setSelectedRecord] = useState<FramerRecord | null>(null);
+  const [activeStatModal, setActiveStatModal] = useState<'total' | 'recent' | 'branch' | null>(null);
 
   // Return Action State
   const [returnStrategy, setReturnStrategy] = useState<'original' | 'manual' | null>(null);
@@ -216,21 +218,37 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
   const artists = useMemo(() => ['All', ...Array.from(new Set(activeRecords.map(r => r.artworkSnapshot.artist))).sort()], [activeRecords]);
 
 
-  // Dashboard Stats
+  // Dashboard Stats & Lists
+  const recentRecordsList = useMemo(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return activeRecords
+      .filter(r => new Date(r.sentDate) > thirtyDaysAgo)
+      .sort((a, b) => new Date(b.sentDate).getTime() - new Date(a.sentDate).getTime());
+  }, [activeRecords]);
+
+  const branchStats = useMemo(() => {
+    const counts: Record<string, { count: number; value: number }> = {};
+    activeRecords.forEach(r => {
+      const br = r.artworkSnapshot.currentBranch || 'Unknown Branch';
+      if (!counts[br]) {
+        counts[br] = { count: 0, value: 0 };
+      }
+      counts[br].count += 1;
+      counts[br].value += r.artworkSnapshot.price || 0;
+    });
+    return Object.entries(counts)
+      .map(([branchName, stat]) => ({ branchName, ...stat }))
+      .sort((a, b) => b.count - a.count);
+  }, [activeRecords]);
+
   const stats = useMemo(() => {
     const total = activeRecords.length;
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
-    const recent = activeRecords.filter(r => new Date(r.sentDate) > thirtyDaysAgo).length;
-
-    const branchCounts = activeRecords.reduce((acc, curr) => {
-      acc[curr.artworkSnapshot.currentBranch] = (acc[curr.artworkSnapshot.currentBranch] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    const topBranch = Object.entries(branchCounts).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0]?.[0] || 'N/A';
+    const recent = recentRecordsList.length;
+    const topBranch = branchStats[0]?.branchName || 'N/A';
 
     return { total, recent, topBranch };
-  }, [activeRecords]);
+  }, [activeRecords, recentRecordsList, branchStats]);
 
   const filteredRecords = activeRecords.filter(record => {
     // Permission checks
@@ -254,7 +272,10 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-amber-500">
+        <div 
+          onClick={() => setActiveStatModal('total')}
+          className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-all group border-l-4 border-l-amber-500 cursor-pointer hover:-translate-y-0.5 active:scale-98"
+        >
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">In Framing</h4>
             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
@@ -265,7 +286,10 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
           <p className="text-xs text-neutral-500 mt-1 font-medium">Active repairs</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-indigo-500">
+        <div 
+          onClick={() => setActiveStatModal('recent')}
+          className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-all group border-l-4 border-l-indigo-500 cursor-pointer hover:-translate-y-0.5 active:scale-98"
+        >
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Recent Sends</h4>
             <div className="p-2 bg-indigo-50 text-indigo-500 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
@@ -276,7 +300,10 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
           <p className="text-xs text-neutral-500 mt-1 font-medium">Last 30 days</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group border-l-4 border-l-blue-500">
+        <div 
+          onClick={() => setActiveStatModal('branch')}
+          className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-all group border-l-4 border-l-blue-500 cursor-pointer hover:-translate-y-0.5 active:scale-98"
+        >
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Top Branch</h4>
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
@@ -676,6 +703,159 @@ const FramerManagementView: React.FC<FramerManagementViewProps> = ({ framerRecor
         confirmLabel={confirmState.confirmLabel}
         isDangerous={confirmState.isDangerous}
       />
+
+      {/* Stat Modals */}
+      {activeStatModal === 'total' && (
+        <Modal title="Total Active Repairs Breakdown" onClose={() => setActiveStatModal(null)}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-amber-50 p-4 rounded-2xl border border-amber-100">
+              <div>
+                <p className="text-sm font-bold text-amber-800 uppercase tracking-wide">Active In Framing</p>
+                <p className="text-3xl font-black text-neutral-900 mt-1">{stats.total}</p>
+              </div>
+              <div className="p-3 bg-amber-500 text-white rounded-xl">
+                <Wrench size={24} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Active Records</h4>
+              <div className="max-h-[350px] overflow-y-auto space-y-2.5 pr-2">
+                {activeRecords.length === 0 ? (
+                  <p className="text-sm text-neutral-400 py-8 text-center bg-neutral-50 rounded-xl border border-dashed border-neutral-200">No records currently in framing.</p>
+                ) : (
+                  activeRecords.map((record) => {
+                    const liveArt = artworks.find(a => a.id === record.artworkId);
+                    const image = liveArt?.imageUrl || record.artworkSnapshot.imageUrl;
+                    return (
+                      <div 
+                        key={record.id}
+                        onClick={() => { handleSelectRecord(record); setActiveStatModal(null); }}
+                        className="flex gap-4 p-3 rounded-xl border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50/50 transition-all cursor-pointer items-center"
+                      >
+                        <div className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
+                          {image ? (
+                            <img src={image} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-300"><Package size={16} /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-xs font-bold text-neutral-900 truncate uppercase">{record.artworkSnapshot.title}</h5>
+                          <p className="text-[10px] text-neutral-500 font-medium truncate">by {record.artworkSnapshot.artist}</p>
+                          <p className="text-[9px] text-neutral-400 font-semibold mt-0.5">{new Date(record.sentDate).toLocaleDateString()}</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border shrink-0 bg-amber-100 text-amber-800 border-amber-200">
+                          Framing
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {activeStatModal === 'recent' && (
+        <Modal title="Recent Sends (Last 30 Days)" onClose={() => setActiveStatModal(null)}>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+              <div>
+                <p className="text-sm font-bold text-indigo-800 uppercase tracking-wide">Recent Sends</p>
+                <p className="text-3xl font-black text-neutral-900 mt-1">{stats.recent}</p>
+              </div>
+              <div className="p-3 bg-indigo-500 text-white rounded-xl">
+                <Clock size={24} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Recent Records</h4>
+              <div className="max-h-[350px] overflow-y-auto space-y-2.5 pr-2">
+                {recentRecordsList.length === 0 ? (
+                  <p className="text-sm text-neutral-400 py-8 text-center bg-neutral-50 rounded-xl border border-dashed border-neutral-200">No framing sends in the last 30 days.</p>
+                ) : (
+                  recentRecordsList.map((record) => {
+                    const liveArt = artworks.find(a => a.id === record.artworkId);
+                    const image = liveArt?.imageUrl || record.artworkSnapshot.imageUrl;
+                    return (
+                      <div 
+                        key={record.id}
+                        onClick={() => { handleSelectRecord(record); setActiveStatModal(null); }}
+                        className="flex gap-4 p-3 rounded-xl border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50/50 transition-all cursor-pointer items-center"
+                      >
+                        <div className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
+                          {image ? (
+                            <img src={image} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-300"><Package size={16} /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-xs font-bold text-neutral-900 truncate uppercase">{record.artworkSnapshot.title}</h5>
+                          <p className="text-[10px] text-neutral-500 font-medium truncate">by {record.artworkSnapshot.artist}</p>
+                          <p className="text-[9px] text-neutral-400 font-semibold mt-0.5">{new Date(record.sentDate).toLocaleDateString()}</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border shrink-0 bg-indigo-100 text-indigo-800 border-indigo-200">
+                          Framing
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {activeStatModal === 'branch' && (
+        <Modal title="Repairs By Branch" onClose={() => setActiveStatModal(null)}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-blue-50 p-4 rounded-2xl border border-blue-100">
+              <div>
+                <p className="text-sm font-bold text-blue-800 uppercase tracking-wide">Top Branch For Repairs</p>
+                <p className="text-2xl font-black text-neutral-900 mt-1">{stats.topBranch}</p>
+              </div>
+              <div className="p-3 bg-blue-500 text-white rounded-xl">
+                <MapPin size={24} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Branch Ranking</h4>
+              <div className="max-h-[350px] overflow-y-auto space-y-3 pr-2">
+                {branchStats.length === 0 ? (
+                  <p className="text-sm text-neutral-400 text-center py-6">No branch framing data available</p>
+                ) : (
+                  branchStats.map((branch) => {
+                    const maxCount = Math.max(...branchStats.map(b => b.count), 1);
+                    const percentage = (branch.count / maxCount) * 100;
+                    return (
+                      <div key={branch.branchName} className="p-4 rounded-xl border border-neutral-200 space-y-2 bg-white">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="text-xs font-bold text-neutral-900">{branch.branchName}</h5>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-black text-neutral-900">{branch.count} {branch.count === 1 ? 'record' : 'records'}</p>
+                            <p className="text-[10px] font-bold text-neutral-500 mt-0.5">₱{branch.value.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-neutral-800 h-full rounded-full" style={{ width: `${percentage}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

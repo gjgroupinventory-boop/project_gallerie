@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SaleRecord, Artwork, SaleStatus, UserPermissions } from '../types';
-import { CheckCircle, XCircle, FileImage, FileText, ShieldCheck, Shield, Clock, LayoutGrid, Rows3, Eye, ExternalLink, Calendar, User, Mail, Phone, Tag, Info, AlertCircle, MessageSquare, ChevronRight, Trash2, Search, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, FileImage, FileText, ShieldCheck, Shield, Clock, LayoutGrid, Rows3, Eye, ExternalLink, Calendar, User, Mail, Phone, Tag, Info, AlertCircle, MessageSquare, ChevronRight, Trash2, Search, Filter, Folder, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -45,6 +45,13 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
   const [pendingBranchFilter, setPendingBranchFilter] = useState<string>('All');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | 'approved' | 'declined'>('all');
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+  const [purchaseTypeTab, setPurchaseTypeTab] = useState<'all' | 'single' | 'bulk'>('all');
+  const [activeFolderKey, setActiveFolderKey] = useState<string | null>(null);
+
+  const toggleFolder = (key: string) => {
+    setExpandedFolders(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const pendingSales = useMemo(() => {
     const pending = sales.filter(s => s.status === SaleStatus.FOR_SALE_APPROVAL && !s.isCancelled);
@@ -122,6 +129,17 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
     pricingVerified: boolean;
     documentsVerified: boolean;
   }>>({});
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    title: string;
+    message: string;
+    actionLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const triggerConfirm = (title: string, message: string, actionLabel: string, onConfirm: () => void) => {
+    setConfirmConfig({ title, message, actionLabel, onConfirm });
+  };
 
   useEffect(() => {
     if (pendingSales.length === 0) {
@@ -270,207 +288,129 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
     }
   };
 
-  const handleDeleteSale = async (e: React.MouseEvent, saleId: string) => {
+  const handleDeleteSale = (e: React.MouseEvent, saleId: string) => {
     e.stopPropagation();
     if (!onBulkDeleteSales) return;
     
     const confirmMessage = "Are you sure you want to permanently delete this sale record? This action cannot be undone and will remove it from the verification queue.";
-    if (window.confirm(confirmMessage)) {
-      await wrapAction(async () => {
-        await Promise.resolve(onBulkDeleteSales([saleId]));
-        if (selectedSale?.id === saleId) setSelectedSale(null);
-      }, 'Permanently Removing Sale Record...', { silent: true });
-    }
+    triggerConfirm(
+      "Remove Sale Record",
+      confirmMessage,
+      "Delete Record",
+      async () => {
+        await wrapAction(async () => {
+          await Promise.resolve(onBulkDeleteSales([saleId]));
+          if (selectedSale?.id === saleId) setSelectedSale(null);
+        }, 'Permanently Removing Sale Record...', { silent: true });
+      }
+    );
   };
 
   const renderSaleCard = (sale: SaleRecord) => {
     const liveArt = getArtwork(sale.artworkId);
     const isCorrupted = !liveArt && (!sale.artworkSnapshot || !sale.artworkSnapshot.title || sale.artworkSnapshot.title === 'Untitled Artwork');
     
-    // Prioritize live data for visuals (image, title, artist) but keep snapshot as fallback
-    // and prioritize snapshot for financial context (price) if available
     const art = {
       ...(liveArt || {}),
       ...(sale.artworkSnapshot || {}),
-      // Force live image if snapshot is missing it
       imageUrl: sale.artworkSnapshot?.imageUrl || liveArt?.imageUrl || '',
       title: sale.artworkSnapshot?.title || liveArt?.title || 'Untitled Artwork',
       artist: sale.artworkSnapshot?.artist || liveArt?.artist || 'Unknown Artist',
       price: sale.artworkSnapshot?.price || liveArt?.price || 0
     };
 
+    const isFull = !sale.isDownpayment || sale.downpayment === (art?.price || 0);
+
     return (
       <div 
         key={sale.id} 
         onClick={() => setSelectedSale(sale)}
-        className="group relative flex flex-col cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-all duration-300 hover:border-blue-400 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)]"
+        className="group relative flex flex-col cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,0.03)] transition-all duration-300 hover:border-blue-400 hover:shadow-[0_16px_32px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 h-full"
       >
         {/* Card Header with Badges */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
+        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-full bg-slate-900/60 backdrop-blur-md px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-white border border-white/10 shadow-sm">
+          <span className={`w-1.5 h-1.5 rounded-full ${isCorrupted ? 'bg-rose-500 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
+          <span>{isCorrupted ? 'Corrupted' : 'Pending'}</span>
+        </div>
+
+        <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
           {userPermissions?.canManageAccounts && (
             <button
-              onClick={(e) => handleDeleteSale(e, sale.id)}
-              className="mb-1 p-1.5 rounded-full bg-white/90 text-slate-400 hover:text-red-600 hover:bg-white shadow-sm border border-slate-200 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteSale(e, sale.id);
+              }}
+              className="p-1 rounded-full bg-slate-900/40 text-white hover:text-red-500 hover:bg-white border border-white/10 shadow-sm transition-colors backdrop-blur-sm"
               title="Delete Record"
             >
-              <Trash2 size={11} />
+              <Trash2 size={10} />
             </button>
           )}
-          {(!sale.isDownpayment || sale.downpayment === (art?.price || 0)) ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-emerald-800 backdrop-blur-sm border border-emerald-200/50">
-              Full Payment
+          {isFull ? (
+            <span className="inline-flex items-center rounded-full bg-emerald-500 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-sm border border-emerald-400/20">
+              Full
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-amber-100/80 px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-amber-800 backdrop-blur-sm border border-amber-200/50">
-              Downpayment
+            <span className="inline-flex items-center rounded-full bg-amber-500 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-sm border border-amber-400/20">
+              Down
             </span>
           )}
           {sale.requestedAttachments && sale.requestedAttachments.length > 0 && (
-            <span className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-white shadow-lg shadow-blue-200 animate-pulse">
+            <span className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-sm animate-pulse border border-blue-500/20">
               Re-upload
             </span>
           )}
         </div>
 
         {/* Hero Section with Image */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50">
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-50 border-b border-slate-100">
           {art.imageUrl ? (
             <OptimizedImage 
               src={art.imageUrl} 
               alt={art.title} 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-slate-300 bg-[linear-gradient(45deg,#f8fafc_25%,#f1f5f9_25%,#f1f5f9_50%,#f8fafc_50%,#f8fafc_75%,#f1f5f9_75%,#f1f5f9_100%)] bg-[length:40px_40px]">
-              <FileImage size={40} strokeWidth={1} />
+            <div className="flex h-full w-full items-center justify-center text-slate-300">
+              <FileImage size={24} strokeWidth={1.5} />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-            <div className="text-white">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-80 mb-0.5">Total Valuation</p>
-              <p className="text-lg font-black">
-                {sale.discountPercentage !== undefined && sale.discountPercentage > 0 ? (
-                  <span className="flex flex-col items-start leading-none">
-                    <span className="line-through text-white/50 text-[10px] font-normal mb-0.5">₱{art.price.toLocaleString()}</span>
-                    <span>₱{sale.discountedPrice?.toLocaleString()} <span className="text-[10px] font-black text-emerald-300">(-{sale.discountPercentage}%)</span></span>
-                  </span>
-                ) : (
-                  formatCurrency(art.price)
-                )}
-              </p>
-            </div>
-          </div>
+          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
         </div>
 
         {/* Content Section */}
-        <div className="flex-1 p-4 md:p-5 flex flex-col">
-          <div className="mb-4">
-            <h4 className={`text-base font-bold tracking-tight leading-snug line-clamp-1 ${isCorrupted ? 'text-red-600' : 'text-slate-900'}`}>{art.title}</h4>
-            <p className="text-xs font-medium text-slate-500">{art.artist}</p>
-            
-            <div className={`mt-3 rounded-lg p-2.5 border ${isCorrupted ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100/50'}`}>
-              <p className={`text-[9.5px] font-black uppercase tracking-widest flex items-center gap-1.5 ${isCorrupted ? 'text-red-700' : 'text-orange-700'}`}>
-                <AlertCircle size={11} />
-                {isCorrupted ? 'CORRUPTED DATA DETECTED' : 'PENDING VERIFICATION'}
-              </p>
-              <p className={`text-[8.5px] font-bold mt-1 leading-tight uppercase tracking-tight ${isCorrupted ? 'text-red-600' : 'text-orange-600'}`}>
-                {isCorrupted 
-                  ? 'Artwork ID is invalid or artwork has been deleted. Please delete this record.' 
-                  : (sale.isDownpayment && sale.downpayment !== undefined && sale.downpayment < (art?.price || 0)) 
-                    ? 'Initial downpayment awaiting verification'
-                    : 'Full payment awaiting verification'}
-              </p>
+        <div className="flex-1 p-3.5 flex flex-col justify-between">
+          <div>
+            <h4 className={`text-xs font-black tracking-tight leading-snug line-clamp-1 uppercase ${isCorrupted ? 'text-rose-600' : 'text-slate-800'}`}>
+              {art.title}
+            </h4>
+            <p className="text-[10px] font-bold text-slate-400 mt-0.5">{art.artist}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1 mt-3 bg-slate-50/75 border border-slate-100 rounded-lg p-1.5 text-[10px] select-none">
+            <div className="bg-white rounded-md p-1 border border-slate-200/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col min-w-0">
+              <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-wider">Client</span>
+              <span className="font-bold text-slate-700 truncate mt-0.5">{sale.clientName}</span>
+            </div>
+            <div className="bg-white rounded-md p-1 border border-slate-200/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col min-w-0">
+              <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-wider">Agent</span>
+              <span className="font-bold text-slate-700 truncate mt-0.5">{sale.agentName}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-3 gap-y-3 mb-4 border-t border-slate-100 pt-4">
+          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">Client</p>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4.5 h-4.5 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                   <User size={9} />
-                </div>
-                <span className="text-[11px] font-bold text-slate-700 line-clamp-1">{sale.clientName}</span>
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">Agent</p>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4.5 h-4.5 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                   <Shield size={9} />
-                </div>
-                <span className="text-[11px] font-bold text-slate-700 line-clamp-1">{sale.agentName}</span>
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">Requested On</p>
-              <div className="flex items-center gap-1.5">
-                <Calendar size={11} className="text-slate-400" />
-                <span className="text-[11px] font-medium text-slate-600">{new Date(sale.saleDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-                {(!sale.isDownpayment || sale.downpayment === (art?.price || 0) || (sale.discountedPrice !== undefined && sale.downpayment === sale.discountedPrice)) ? 'Final Price' : 'Downpayment'}
+              <p className="text-[7.5px] font-bold uppercase tracking-widest text-slate-400">
+                {isFull ? 'Final Price' : 'Downpayment'}
               </p>
-              <span className="text-[11px] font-black text-emerald-600">
-                {sale.discountPercentage !== undefined && sale.discountPercentage > 0 ? (
-                  <span className="flex flex-col text-right sm:text-left leading-tight">
-                    <span className="text-slate-400 font-normal line-through text-[9px] mb-0.5">₱{art.price.toLocaleString()}</span>
-                    <span>{formatCurrency(sale.downpayment || 0)} <span className="text-[9px] font-bold text-emerald-700">(-{sale.discountPercentage}%)</span></span>
-                  </span>
-                ) : (
-                  formatCurrency(sale.downpayment || 0)
-                )}
+              <span className="text-[11px] font-black text-emerald-600 tracking-tight block mt-0.5">
+                {formatCurrency(sale.downpayment || 0)}
               </span>
             </div>
-          </div>
-
-          {/* Interaction Area */}
-          <div className="mt-auto space-y-3.5">
-            <div className="relative group/check flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50/40 p-3 transition-all hover:bg-blue-50">
-              <div className="relative flex items-center mt-0.5">
-                <input
-                  type="checkbox"
-                  id={`confirm-${sale.id}`}
-                  checked={!!contactConfirmed[sale.id]}
-                  onChange={() => handleToggleConfirm(sale.id)}
-                  className="peer h-4 w-4 cursor-pointer appearance-none rounded border-2 border-blue-200 transition-all checked:bg-blue-600 checked:border-blue-600"
-                />
-                <CheckCircle size={10} className="absolute left-0.5 top-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
-              </div>
-              <label htmlFor={`confirm-${sale.id}`} className="cursor-pointer text-[10.5px] font-medium text-slate-700 leading-normal">
-                I verify that the buyer has been contacted and all details are accurate.
-              </label>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => handleDeclineClick(e, sale.id)}
-                className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-[10.5px] font-bold uppercase tracking-wider text-slate-600 transition-all hover:border-red-200 hover:text-red-600 hover:bg-red-50 active:scale-95"
-              >
-                Decline
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const remarks = prompt("Administrative Remarks (Optional):", "");
-                  if (remarks === null) return;
-                  wrapAction(async () => {
-                    await Promise.resolve(onApproveSale(sale.id, remarks));
-                  }, 'Finalizing Sale Approval...', { silent: true });
-                }}
-                disabled={!contactConfirmed[sale.id] || isProcessing}
-                className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-[10.5px] font-bold uppercase tracking-wider transition-all ${
-                  contactConfirmed[sale.id]
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98]'
-                    : 'cursor-not-allowed bg-slate-100 text-slate-400'
-                }`}
-              >
-                <ShieldCheck size={14} />
-                Approve Sale
-              </button>
-            </div>
+            <span className="text-[9px] font-black text-blue-600 bg-blue-50/80 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded-md tracking-wider transition-all duration-200 flex items-center gap-0.5 border border-blue-100/30">
+              REVIEW
+              <ChevronRight size={10} strokeWidth={2.5} />
+            </span>
           </div>
         </div>
       </div>
@@ -611,6 +551,198 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
     );
   };
 
+  const renderFolderCard = (group: { key: string, items: SaleRecord[], representative: SaleRecord }) => {
+    const rep = group.representative;
+    
+    const totalValue = group.items.reduce((sum, item) => {
+      const art = getArtwork(item.artworkId);
+      const price = item.discountedPrice !== undefined ? item.discountedPrice : (item.artworkSnapshot?.price || art?.price || 0);
+      return sum + price;
+    }, 0);
+
+    const images = group.items.map(item => {
+      const art = getArtwork(item.artworkId);
+      return item.artworkSnapshot?.imageUrl || art?.imageUrl || '';
+    }).filter(Boolean);
+
+    return (
+      <div 
+        onClick={() => setActiveFolderKey(group.key)}
+        className="group relative flex flex-col cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,0.03)] transition-all duration-300 hover:border-blue-400 hover:shadow-[0_16px_32px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 h-full"
+      >
+        {/* Card Header with Badges */}
+        <div className="absolute top-2.5 left-2.5 z-30 flex items-center gap-1.5 rounded-full bg-slate-900/60 backdrop-blur-md px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-white border border-white/10 shadow-sm">
+          <Folder size={10} className="text-amber-400" />
+          <span>Folder</span>
+        </div>
+
+        <div className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1.5">
+          <span className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-sm border border-blue-500/20">
+            Bulk ({group.items.length})
+          </span>
+        </div>
+
+        {/* Hero Section with stacked images deck (compact) */}
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100/50 flex items-center justify-center pt-3 border-b border-slate-100">
+          <div className="relative w-[75%] h-[80%]">
+            {images.slice(0, 3).map((img, idx) => {
+              const rotation = idx === 0 ? '-5deg' : idx === 1 ? '5deg' : '0deg';
+              const scale = idx === 0 ? 'scale-90' : idx === 1 ? 'scale-95' : 'scale-100';
+              const translate = idx === 0 ? '-translate-y-1.5 -translate-x-2' : idx === 1 ? '-translate-y-1 translate-x-2' : '';
+              const zIndex = idx === 2 ? 'z-20' : idx === 1 ? 'z-10' : 'z-0';
+              
+              return (
+                <div 
+                  key={idx}
+                  style={{ transform: `rotate(${rotation})` }}
+                  className={`absolute inset-0 bg-white border border-slate-200/85 rounded-md overflow-hidden shadow-[0_4px_12px_rgba(15,23,42,0.06)] transition-transform duration-300 group-hover:scale-105 ${scale} ${translate} ${zIndex}`}
+                >
+                  {img ? (
+                    <img src={img} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-300 bg-slate-50">
+                      <Folder size={18} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="flex-1 p-3.5 flex flex-col justify-between">
+          <div>
+            <h4 className="text-xs font-black tracking-tight leading-snug line-clamp-1 text-slate-800 uppercase flex items-center gap-1">
+              <FolderOpen className="text-blue-600" size={12} />
+              Bulk Sale Folder
+            </h4>
+            <p className="text-[10px] font-bold text-slate-400 mt-0.5">Purchased by {rep.clientName}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1 mt-3 bg-slate-50/75 border border-slate-100 rounded-lg p-1.5 text-[10px] select-none">
+            <div className="bg-white rounded-md p-1 border border-slate-200/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col min-w-0">
+              <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-wider">Client</span>
+              <span className="font-bold text-slate-700 truncate mt-0.5">{rep.clientName}</span>
+            </div>
+            <div className="bg-white rounded-md p-1 border border-slate-200/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col min-w-0">
+              <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-wider">Agent</span>
+              <span className="font-bold text-slate-700 truncate mt-0.5">{rep.agentName}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
+            <div>
+              <p className="text-[7.5px] font-bold uppercase tracking-widest text-slate-400">Total Value</p>
+              <span className="text-[11px] font-black text-emerald-600 tracking-tight block mt-0.5">
+                {formatCurrency(totalValue)}
+              </span>
+            </div>
+            <span className="text-[9px] font-black text-amber-600 bg-amber-50/80 hover:bg-amber-600 hover:text-white px-2.5 py-1 rounded-md tracking-wider transition-all duration-200 flex items-center gap-0.5 border border-amber-100/30">
+              OPEN
+              <ChevronRight size={10} strokeWidth={2.5} />
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFolderRow = (group: { key: string, items: SaleRecord[], representative: SaleRecord }) => {
+    const rep = group.representative;
+    
+    const totalValue = group.items.reduce((sum, item) => {
+      const art = getArtwork(item.artworkId);
+      const price = item.discountedPrice !== undefined ? item.discountedPrice : (item.artworkSnapshot?.price || art?.price || 0);
+      return sum + price;
+    }, 0);
+
+    return (
+      <div 
+        onClick={() => setActiveFolderKey(group.key)}
+        className="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden transition-all duration-300 hover:border-blue-400 hover:shadow-md cursor-pointer"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between p-5 bg-slate-50/50 hover:bg-slate-50 transition-colors gap-4">
+          <div className="flex items-center gap-4 lg:w-[400px] shrink-0">
+            {(() => {
+              const images = group.items.map(item => {
+                const art = getArtwork(item.artworkId);
+                return item.artworkSnapshot?.imageUrl || art?.imageUrl || '';
+              }).filter(Boolean);
+
+              return (
+                <div className="w-12 h-12 relative shrink-0">
+                  {images.length === 0 ? (
+                    <div className="w-12 h-12 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
+                      <Folder size={24} />
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-full">
+                      {images.slice(0, 3).map((img, idx) => {
+                        const offset = idx * 4;
+                        const zIndex = 30 - idx * 10;
+                        return (
+                          <div
+                            key={idx}
+                            className="absolute rounded border border-white bg-white shadow-sm overflow-hidden"
+                            style={{
+                              width: '34px',
+                              height: '34px',
+                              left: `${offset}px`,
+                              top: `${offset}px`,
+                              zIndex: zIndex,
+                            }}
+                          >
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[8px] font-black uppercase tracking-wider rounded border border-blue-100">Bulk Folder</span>
+                <span className="text-[10px] font-bold text-slate-400">{group.items.length} Items</span>
+              </div>
+              <h4 className="font-bold text-slate-900 tracking-tight leading-none">Bulk Purchase Folder</h4>
+            </div>
+          </div>
+
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 border-l border-slate-100 lg:mx-4">
+             <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Client</p>
+                <p className="text-xs font-bold text-slate-700 truncate">{rep.clientName}</p>
+             </div>
+             <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Agent</p>
+                <p className="text-xs font-bold text-slate-700 truncate">{rep.agentName}</p>
+             </div>
+             <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</p>
+                <p className="text-xs font-medium text-slate-600">{new Date(rep.saleDate).toLocaleDateString()}</p>
+             </div>
+             <div className="space-y-1 text-right sm:text-left">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Folder Value</p>
+                <div className="text-xs font-black text-emerald-600">
+                  ₱{totalValue.toLocaleString()}
+                </div>
+             </div>
+          </div>
+
+          <div className="flex items-center gap-4 shrink-0 justify-end">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden xl:inline">Click to Open Folder</span>
+            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 transition-colors">
+              <ChevronRight size={16} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const selectedSaleArtwork = selectedSale ? getArtwork(selectedSale.artworkId) : null;
   const selectedSaleAttachments = selectedSale
     ? [
@@ -706,6 +838,44 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
     }
   };
 
+  const groupedPendingSales = useMemo(() => {
+    const groups: Record<string, SaleRecord[]> = {};
+    filteredPendingSales.forEach(sale => {
+      const key = `${sale.clientName.trim().toLowerCase()}_${sale.agentName.trim().toLowerCase()}_${new Date(sale.saleDate).toDateString()}`;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(sale);
+    });
+    return Object.entries(groups).map(([key, items]) => ({
+      key,
+      items,
+      representative: items[0]
+    }));
+  }, [filteredPendingSales]);
+
+  const singleCount = useMemo(() => {
+    return groupedPendingSales.filter(g => g.items.length === 1).length;
+  }, [groupedPendingSales]);
+
+  const bulkCount = useMemo(() => {
+    return groupedPendingSales.filter(g => g.items.length > 1).length;
+  }, [groupedPendingSales]);
+
+  const displayedPendingSales = useMemo(() => {
+    return groupedPendingSales.filter(group => {
+      if (purchaseTypeTab === 'all') return true;
+      if (purchaseTypeTab === 'single') return group.items.length === 1;
+      if (purchaseTypeTab === 'bulk') return group.items.length > 1;
+      return true;
+    });
+  }, [groupedPendingSales, purchaseTypeTab]);
+
+  const activeFolder = useMemo(() => {
+    if (!activeFolderKey) return null;
+    return groupedPendingSales.find(g => g.key === activeFolderKey) || null;
+  }, [groupedPendingSales, activeFolderKey]);
+
   return (
     <div className={`max-w-[1600px] w-full ${hideHeader ? '' : 'mx-auto p-4 md:p-8 space-y-10'}`}>
       <LoadingOverlay isVisible={isProcessing} title={processMessage} />
@@ -796,6 +966,49 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
               </div>
             ) : (
               <div className="flex flex-col gap-6">
+                {/* Sub-tabs for purchase types */}
+                <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit border border-slate-200/60 shadow-sm">
+                  <button
+                    onClick={() => setPurchaseTypeTab('all')}
+                    className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+                      purchaseTypeTab === 'all'
+                        ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    <span>All Sales</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${purchaseTypeTab === 'all' ? 'bg-slate-100 text-slate-700' : 'bg-slate-200/50 text-slate-400'}`}>
+                      {groupedPendingSales.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setPurchaseTypeTab('single')}
+                    className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+                      purchaseTypeTab === 'single'
+                        ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    <span>Single Purchases</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${purchaseTypeTab === 'single' ? 'bg-blue-50 text-blue-700' : 'bg-slate-200/50 text-slate-400'}`}>
+                      {singleCount}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setPurchaseTypeTab('bulk')}
+                    className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+                      purchaseTypeTab === 'bulk'
+                        ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    <span>Bulk Folders</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${purchaseTypeTab === 'bulk' ? 'bg-blue-50 text-blue-700' : 'bg-slate-200/50 text-slate-400'}`}>
+                      {bulkCount}
+                    </span>
+                  </button>
+                </div>
+
                 {/* Search and Filters Toolbar */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-md border border-neutral-200 shadow-sm">
                   <div className="relative flex-1 max-w-md w-full">
@@ -865,21 +1078,44 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
                   </div>
                 </div>
 
-                {filteredPendingSales.length === 0 ? (
+                {displayedPendingSales.length === 0 ? (
                   <div className="py-20 bg-slate-50/40 rounded-xl border border-dashed border-slate-200/80 flex flex-col items-center justify-center text-slate-400 gap-3">
                     <Search size={32} className="text-slate-300" />
                     <div className="text-center">
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-600">No matching declarations</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                        {purchaseTypeTab === 'single' ? 'No single purchases found' : purchaseTypeTab === 'bulk' ? 'No bulk folders found' : 'No matching declarations'}
+                      </p>
                       <p className="text-[10px] text-slate-400 mt-1">Try adjusting your filters or search query.</p>
                     </div>
                   </div>
                 ) : (
                   <div className={viewMode === 'grid' ? "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : "space-y-4"}>
-                    {filteredPendingSales.map(sale => (
-                      <div key={sale.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        {viewMode === 'grid' ? renderSaleCard(sale) : renderSaleRow(sale)}
-                      </div>
-                    ))}
+                    {displayedPendingSales.map(group => {
+                      if (group.items.length === 1) {
+                        const sale = group.items[0];
+                        return (
+                          <div key={sale.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            {viewMode === 'grid' ? renderSaleCard(sale) : renderSaleRow(sale)}
+                          </div>
+                        );
+                      } else {
+                        const isExpanded = !!expandedFolders[group.key];
+                        return (
+                          <div 
+                            key={group.key} 
+                            className={
+                              viewMode === 'grid'
+                                ? isExpanded
+                                  ? "col-span-1 sm:col-span-2 md:col-span-3 xl:col-span-4 2xl:col-span-5 animate-in fade-in slide-in-from-bottom-2 duration-500"
+                                  : "col-span-1 animate-in fade-in slide-in-from-bottom-2 duration-500"
+                                : "animate-in fade-in slide-in-from-bottom-2 duration-500"
+                            }
+                          >
+                            {viewMode === 'grid' ? renderFolderCard(group) : renderFolderRow(group)}
+                          </div>
+                        );
+                      }
+                    })}
                   </div>
                 )}
               </div>
@@ -1625,6 +1861,179 @@ const SalesApprovalPage: React.FC<SalesApprovalPageProps> = ({
                     }`}
                   >
                     {declineMode === 'straight' ? 'Straight Reject' : 'Confirm Decline'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Microsoft Folder style Pop-up Dashboard Modal */}
+      <AnimatePresence>
+        {activeFolder && (() => {
+          const rep = activeFolder.representative;
+          const totalValue = activeFolder.items.reduce((sum, item) => {
+            const art = getArtwork(item.artworkId);
+            return sum + (item.discountedPrice !== undefined ? item.discountedPrice : (item.artworkSnapshot?.price || art?.price || 0));
+          }, 0);
+          
+          return (
+            <div className="fixed inset-0 z-[115] flex items-center justify-center bg-slate-900/60 p-4 md:p-6 backdrop-blur-sm overflow-hidden">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                className="flex h-[80vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-slate-300 bg-slate-50 shadow-[0_32px_80px_rgba(0,0,0,0.35)]"
+              >
+                {/* Folder Title Bar (Explorer style) */}
+                <div className="flex items-center justify-between bg-white px-4 py-3 border-b border-slate-200 select-none shrink-0">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {/* Navigation buttons */}
+                    <div className="flex items-center gap-1.5 mr-2 shrink-0">
+                      <button 
+                        onClick={() => setActiveFolderKey(null)}
+                        className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+                        title="Back"
+                      >
+                        <ChevronRight className="rotate-180" size={16} />
+                      </button>
+                      <button 
+                        disabled 
+                        className="p-1.5 rounded text-slate-300 cursor-not-allowed"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-slate-600 bg-slate-100 border border-slate-200/80 rounded-md px-3 py-1.5 text-xs font-medium flex-1 max-w-md truncate">
+                      <FolderOpen size={14} className="text-amber-500 shrink-0" />
+                      <span className="text-slate-400">Finance Approval</span>
+                      <span className="text-slate-300">/</span>
+                      <span className="text-slate-400">Bulk Sales</span>
+                      <span className="text-slate-300">/</span>
+                      <span className="text-slate-700 font-bold">{rep.clientName}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <button
+                      onClick={() => setActiveFolderKey(null)}
+                      className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                    >
+                      <XCircle size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-header Stats panel */}
+                <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shrink-0">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-black text-slate-800 uppercase tracking-tight flex items-center gap-1.5">
+                        Bulk Purchase Folder
+                      </h2>
+                      <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        {activeFolder.items.length} Paintings
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500">
+                      Client: <span className="font-bold text-slate-800">{rep.clientName}</span> &bull; Agent: <span className="font-bold text-slate-800">{rep.agentName}</span>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Total Value</p>
+                      <p className="text-xl font-black text-emerald-600">₱{totalValue.toLocaleString()}</p>
+                      {onBulkDeleteSales && (
+                      <button
+                        onClick={() => {
+                          triggerConfirm(
+                            "Delete Bulk Folder",
+                            `Are you sure you want to permanently delete all ${activeFolder.items.length} records inside this folder?`,
+                            "Delete Folder",
+                            async () => {
+                              await wrapAction(async () => {
+                                await Promise.resolve(onBulkDeleteSales(activeFolder.items.map(i => i.id)));
+                                setActiveFolderKey(null);
+                              }, 'Deleting Bulk Records...', { silent: true });
+                            }
+                          );
+                        }}
+                        className="h-9 px-4 rounded-none bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 text-[10px] font-black uppercase tracking-wider transition-all"
+                      >
+                        Delete Folder
+                      </button>
+                    )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Explorer File View Area */}
+                <div className="custom-scrollbar flex-1 overflow-y-auto p-6 bg-slate-100/50">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                    {activeFolder.items.map(sale => (
+                      <div key={sale.id} className="animate-in fade-in zoom-in-95 duration-200">
+                        {renderSaleCard(sale)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Explorer style Status Bar */}
+                <div className="bg-slate-50 border-t border-slate-200 px-4 py-2.5 flex items-center justify-between text-[10.5px] font-bold text-slate-500 select-none shrink-0">
+                  <div className="flex items-center gap-3">
+                    <Folder size={12} className="text-amber-500" />
+                    <span>{activeFolder.items.length} files selected</span>
+                  </div>
+                  <div>
+                    <span>Total Valuation: <span className="text-slate-800 font-black">₱{totalValue.toLocaleString()}</span></span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* Custom Confirmation Modal */}
+      <AnimatePresence>
+        {confirmConfig && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 10 }}
+              className="bg-white border border-slate-200 w-full max-w-md overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.3)] flex flex-col rounded-none"
+            >
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-white">
+                <div className="w-8 h-8 bg-rose-50 text-rose-600 rounded-none flex items-center justify-center border border-rose-100">
+                  <Trash2 size={16} />
+                </div>
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-none">{confirmConfig.title}</h3>
+              </div>
+
+              <div className="p-6 space-y-6 bg-slate-50">
+                <p className="text-xs font-bold leading-relaxed text-slate-600 uppercase tracking-wider">
+                  {confirmConfig.message}
+                </p>
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    onClick={() => setConfirmConfig(null)}
+                    className="flex-1 h-10 border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all active:scale-95 rounded-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      confirmConfig.onConfirm();
+                      setConfirmConfig(null);
+                    }}
+                    className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 rounded-none shadow-lg shadow-rose-200"
+                  >
+                    {confirmConfig.actionLabel}
                   </button>
                 </div>
               </div>

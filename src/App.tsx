@@ -69,7 +69,8 @@ const App: React.FC = () => {
     operationsView, setOperationsView,
     importStatus, setImportStatus,
     targetSaleId, setTargetSaleId,
-    isMasterViewOpen, setIsMasterViewOpen
+    isMasterViewOpen, setIsMasterViewOpen,
+    timeTravelDate, setTimeTravelDate
   } = useUI();
 
   const {
@@ -98,7 +99,14 @@ const App: React.FC = () => {
     isLoadingArtworks,
     isLoadingSales,
     conversations,
-    messages
+    messages,
+    rawArtworks,
+    rawAllArtworksIncludingDeleted,
+    rawSales,
+    rawEvents,
+    rawReturnRecords,
+    rawFramerRecords,
+    rawTransfers
   } = useData();
 
   const { zoomLevel, setZoomLevel } = useZoom();
@@ -268,14 +276,14 @@ const App: React.FC = () => {
   }, [activeTab, currentPermissions]);
 
   const canPerform = {
-    add: currentPermissions.canAddArtwork,
-    edit: currentPermissions.canEditArtwork,
-    transfer: currentPermissions.canTransferArtwork,
-    sell: currentPermissions.canSellArtwork,
-    reserve: currentPermissions.canReserveArtwork,
-    deliver: currentPermissions.canApproveLogistics,
-    manageUsers: currentPermissions.canManageAccounts,
-    manageEvents: currentPermissions.canManageEvents,
+    add: currentPermissions.canAddArtwork && !timeTravelDate,
+    edit: currentPermissions.canEditArtwork && !timeTravelDate,
+    transfer: currentPermissions.canTransferArtwork && !timeTravelDate,
+    sell: currentPermissions.canSellArtwork && !timeTravelDate,
+    reserve: currentPermissions.canReserveArtwork && !timeTravelDate,
+    deliver: currentPermissions.canApproveLogistics && !timeTravelDate,
+    manageUsers: currentPermissions.canManageAccounts && !timeTravelDate,
+    manageEvents: currentPermissions.canManageEvents && !timeTravelDate,
   };
 
   const handleViewArtwork = (id: string) => {
@@ -761,16 +769,18 @@ const App: React.FC = () => {
           return (
             <Suspense fallback={<TabLoadingScreen />}>
               <TimeMachinePage
-                artworks={allArtworksIncludingDeleted}
-                sales={sales}
+                artworks={rawAllArtworksIncludingDeleted}
+                sales={rawSales}
                 logs={logs}
-                transfers={transfers}
-                events={events}
-                returnRecords={returnRecords}
-                framerRecords={framerRecords}
+                transfers={rawTransfers}
+                events={rawEvents}
+                returnRecords={rawReturnRecords}
+                framerRecords={rawFramerRecords}
                 onViewArtwork={handleViewArtwork}
                 exclusiveBranches={exclusiveBranches}
                 userPermissions={currentPermissions}
+                timeTravelDate={timeTravelDate}
+                setTimeTravelDate={setTimeTravelDate}
               />
             </Suspense>
           );
@@ -1046,6 +1056,7 @@ const App: React.FC = () => {
         currentUser={currentUser}
         transferRequests={transferRequests}
         returnRecords={returnRecords}
+        onViewProfile={() => setShowProfile(true)}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
           <Header
@@ -1082,6 +1093,22 @@ const App: React.FC = () => {
           permissions={currentUser?.permissions}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
+        {timeTravelDate && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 flex items-center justify-between text-xs font-medium text-amber-800">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>
+                Viewing historical state as of <strong>{new Date(timeTravelDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</strong>. All operations are read-only.
+              </span>
+            </div>
+            <button
+              onClick={() => setTimeTravelDate(null)}
+              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-black uppercase tracking-wider transition-colors"
+            >
+              Return to Present
+            </button>
+          </div>
+        )}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {syncError && (
             <div className="bg-neutral-50 border-l-4 border-neutral-900 p-4 mb-4 rounded-md shadow-sm">

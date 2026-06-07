@@ -186,7 +186,8 @@ export enum DeliveryRequestStatus {
   APPROVED = 'Approved',
   DISPATCHED = 'Dispatched',
   DECLINED = 'Declined',
-  CANCELLED = 'Cancelled'
+  CANCELLED = 'Cancelled',
+  HOLD = 'Hold'
 }
 
 export interface DeliveryRequest {

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TransferRequest, Artwork, Branch, UserAccount, UserRole, ArtworkStatus, UserPermissions, ReturnRecord, ReturnType } from '../types';
-import { CheckCircle2, XCircle, Clock, ArrowRightLeft, Filter, PauseCircle, Eye, Calendar, User, Trash2, RotateCcw } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, ArrowRightLeft, Filter, PauseCircle, Eye, Calendar, User, Trash2, RotateCcw, Folder, FolderOpen, ChevronRight } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { useActionProcessing } from '../hooks/useActionProcessing';
 import LoadingOverlay from '../components/LoadingOverlay';
@@ -50,6 +50,7 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [declineResubmissionReasons, setDeclineResubmissionReasons] = useState<string[]>([]);
   const [remarks, setRemarks] = useState('');
+  const [activeFolderKey, setActiveFolderKey] = useState<string | null>(null);
 
   const {
     isProcessing,
@@ -146,6 +147,27 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
     });
   }, [requests, activeTab, searchTerm, currentUser, branches, visibleArtworkIds]);
 
+  const groupedRequests = useMemo(() => {
+    const groups: Record<string, TransferRequest[]> = {};
+    filteredRequests.forEach(req => {
+      const key = `${req.fromBranch.trim().toLowerCase()}_${req.toBranch.trim().toLowerCase()}_${req.requestedBy.trim().toLowerCase()}_${new Date(req.requestedAt).toDateString()}`;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(req);
+    });
+    return Object.entries(groups).map(([key, items]) => ({
+      key,
+      items,
+      representative: items[0]
+    }));
+  }, [filteredRequests]);
+
+  const activeFolder = useMemo(() => {
+    if (!activeFolderKey) return null;
+    return groupedRequests.find(g => g.key === activeFolderKey) || null;
+  }, [groupedRequests, activeFolderKey]);
+
   // Clear selection when changing tabs
   useMemo(() => {
     setSelectedIds([]);
@@ -160,6 +182,115 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
       case 'Cancelled': return 'bg-neutral-50 text-neutral-400 border-neutral-100';
       default: return 'bg-neutral-100 text-neutral-900';
     }
+  };
+
+  const renderFolderRow = (group: { key: string; items: TransferRequest[]; representative: TransferRequest }) => {
+    const rep = group.representative;
+    const isSelected = group.items.every(item => selectedIds.includes(item.id));
+    const isAnySelected = group.items.some(item => selectedIds.includes(item.id));
+
+    return (
+      <tr 
+        key={group.key}
+        onClick={() => setActiveFolderKey(group.key)}
+        className="hover:bg-neutral-50 transition-colors cursor-pointer border-b border-neutral-100"
+      >
+        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 cursor-pointer"
+            checked={isSelected}
+            onChange={(e) => {
+              const ids = group.items.map(item => item.id);
+              if (e.target.checked) {
+                setSelectedIds(prev => [...new Set([...prev, ...ids])]);
+              } else {
+                setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
+              }
+            }}
+          />
+        </td>
+        <td className="px-6 py-4">
+          <div className="flex items-center space-x-4">
+            {(() => {
+              const previewImages = group.items
+                .map(item => {
+                  const artwork = artworks.find(a => a.id === item.artworkId);
+                  return artwork?.imageUrl || item.artworkImage || '';
+                })
+                .filter(Boolean);
+
+              return (
+                <div className="w-12 h-12 relative shrink-0">
+                  {previewImages.length === 0 ? (
+                    <div className="w-12 h-12 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 shadow-inner">
+                      <FolderOpen size={24} />
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-full">
+                      {previewImages.slice(0, 3).map((img, idx) => {
+                        const offset = idx * 4;
+                        const zIndex = 30 - idx * 10;
+                        return (
+                          <div
+                            key={idx}
+                            className="absolute rounded border border-white bg-white shadow-sm overflow-hidden"
+                            style={{
+                              width: '34px',
+                              height: '34px',
+                              left: `${offset}px`,
+                              top: `${offset}px`,
+                              zIndex: zIndex,
+                            }}
+                          >
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[8px] font-black uppercase tracking-wider rounded border border-amber-200">Bulk Folder</span>
+                <span className="text-[10px] font-bold text-neutral-400">{group.items.length} Artworks</span>
+              </div>
+              <div className="font-black text-neutral-900 leading-tight mt-1">Bulk Transfer Session</div>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <div className="flex items-center space-x-3 text-xs">
+            <span className="font-bold text-neutral-600">{rep.fromBranch}</span>
+            <ArrowRightLeft size={12} className="text-neutral-300" />
+            <span className="font-black text-neutral-900">{rep.toBranch}</span>
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <div className="text-xs font-bold text-neutral-900">{rep.requestedBy}</div>
+        </td>
+        <td className="px-6 py-4">
+          <div className="text-xs font-bold text-neutral-700">
+            {new Date(rep.requestedAt).toLocaleDateString()}
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest border ${getStatusColor(rep.status)}`}>
+            {rep.status}
+          </span>
+        </td>
+        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setActiveFolderKey(group.key)}
+            className="px-4 py-1.5 bg-neutral-100 text-neutral-600 text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-neutral-200 transition-all border border-neutral-200"
+          >
+            Open Folder
+          </button>
+        </td>
+      </tr>
+    );
   };
 
   return (
@@ -302,7 +433,12 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
-                {filteredRequests.map(req => {
+                {groupedRequests.map(group => {
+                  if (group.items.length > 1) {
+                    return renderFolderRow(group);
+                  }
+
+                  const req = group.items[0];
                   const artwork = artworks.find(a => a.id === req.artworkId);
                   const displayTitle = artwork?.title || req.artworkTitle || 'Deleted Artwork';
                   const displayCode = artwork?.code || req.artworkCode || '---';
@@ -476,7 +612,7 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
 
       {/* Details Modal */}
       {detailsModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/40 z-[130] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-sm max-w-xl w-full p-0 shadow-2xl transform transition-all overflow-hidden border border-neutral-200">
             {/* Header */}
             <div className="px-8 py-6 border-b border-neutral-100 flex justify-between items-center bg-white">
@@ -608,7 +744,7 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
 
       {/* Confirmation Modal */}
       {confirmationModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-[130] flex items-center justify-center p-4">
           <div className="bg-white rounded-md max-w-md w-full p-6 shadow-xl transform transition-all">
             <h3 className="text-lg font-bold text-neutral-900 mb-2">
               {confirmationModal.type === 'accept' && 'Accept Transfer'}
@@ -659,9 +795,9 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
               </p>
             ) : (
               <p className="text-neutral-600 mb-6 text-sm">
-                Are you sure you want to {confirmationModal.type === 'hold' ? 'put on hold' : confirmationModal.type} the transfer request for <span className="font-semibold">{confirmationModal.request?.artworkTitle}</span>?
-                {confirmationModal.type === 'accept' && ' This will move the artwork to your branch inventory.'}
-                {confirmationModal.type === 'hold' && ' This will move the request to the On Hold tab for later review.'}
+                Are you sure you want to {confirmationModal.type === 'hold' ? 'put on hold' : confirmationModal.type} the transfer request for <span className="font-semibold">{confirmationModal.request?.artworkTitle || `${confirmationModal.bulkIds?.length} transfer requests`}</span>?
+                {confirmationModal.type === 'accept' && ' This will move the artwork(s) to your branch inventory.'}
+                {confirmationModal.type === 'hold' && ' This will move the request(s) to the On Hold tab for later review.'}
                 {confirmationModal.type === 'delete' && ' This will permanently remove this transfer record from the database.'}
               </p>
             )}
@@ -698,12 +834,28 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
                   const bulkIds = confirmationModal.bulkIds;
 
                   await wrapAction(async () => {
-                    if (type === 'accept' && req) {
-                      await Promise.resolve(onAccept(req, remarks));
+                    if (type === 'accept') {
+                      if (bulkIds) {
+                        for (const id of bulkIds) {
+                          const r = requests.find(item => item.id === id);
+                          if (r) await Promise.resolve(onAccept(r, remarks));
+                        }
+                        setActiveFolderKey(null);
+                      } else if (req) {
+                        await Promise.resolve(onAccept(req, remarks));
+                      }
                     } else if (type === 'decline' && req) {
                       await Promise.resolve(onDecline(req, declineResubmissionReasons.join(', '), remarks));
-                    } else if (type === 'hold' && req) {
-                      await Promise.resolve(onHold(req, remarks));
+                    } else if (type === 'hold') {
+                      if (bulkIds) {
+                        for (const id of bulkIds) {
+                          const r = requests.find(item => item.id === id);
+                          if (r) await Promise.resolve(onHold(r, remarks));
+                        }
+                        setActiveFolderKey(null);
+                      } else if (req) {
+                        await Promise.resolve(onHold(req, remarks));
+                      }
                     } else if (type === 'delete' && req) {
                       await Promise.resolve(onDelete?.(req));
                     } else if (type === 'bulk-delete' && bulkIds) {
@@ -737,6 +889,194 @@ const ArtworkTransfer: React.FC<ArtworkTransferProps> = ({
           </div>
         </div>
       )}
+
+      {/* Bulk Transfer Microsoft Folder style Pop-up Dashboard Modal */}
+      <AnimatePresence>
+        {activeFolder && (() => {
+          const rep = activeFolder.representative;
+          const folderStatus = rep.status;
+          
+          return (
+            <div className="fixed inset-0 z-[115] flex items-center justify-center bg-slate-900/60 p-4 md:p-6 backdrop-blur-sm overflow-hidden">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                className="flex h-[80vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-slate-300 bg-slate-50 shadow-[0_32px_80px_rgba(0,0,0,0.35)]"
+              >
+                {/* Folder Title Bar (Explorer style) */}
+                <div className="flex items-center justify-between bg-white px-4 py-3 border-b border-slate-200 select-none shrink-0">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {/* Navigation buttons */}
+                    <div className="flex items-center gap-1.5 mr-2 shrink-0">
+                      <button 
+                        onClick={() => setActiveFolderKey(null)}
+                        className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+                        title="Back"
+                      >
+                        <ChevronRight className="rotate-180" size={16} />
+                      </button>
+                      <button 
+                        disabled 
+                        className="p-1.5 rounded text-slate-300 cursor-not-allowed"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-slate-600 bg-slate-100 border border-slate-200/80 rounded-md px-3 py-1.5 text-xs font-medium flex-1 max-w-md truncate">
+                      <FolderOpen size={14} className="text-amber-500 shrink-0" />
+                      <span className="text-slate-400">Artwork Transfer</span>
+                      <span className="text-slate-300">/</span>
+                      <span className="text-slate-400">Incoming</span>
+                      <span className="text-slate-300">/</span>
+                      <span className="text-slate-700 font-bold">{rep.requestedBy}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <button
+                      onClick={() => setActiveFolderKey(null)}
+                      className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                    >
+                      <XCircle size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-header Stats panel */}
+                <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shrink-0">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-black text-slate-800 uppercase tracking-tight flex items-center gap-1.5">
+                        Bulk Transfer Folder
+                      </h2>
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        {activeFolder.items.length} Artworks
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500">
+                      Route: <span className="font-bold text-slate-800">{rep.fromBranch}</span> &rarr; <span className="font-bold text-slate-800">{rep.toBranch}</span> &bull; Requested by: <span className="font-bold text-slate-800">{rep.requestedBy}</span>
+                    </p>
+                  </div>
+
+                  {(activeTab === 'incoming' || activeTab === 'on-hold') && folderStatus === 'Pending' && (currentUser.role === UserRole.ADMIN || rep.toBranch === currentUser.branch) && (
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setRemarks('');
+                          setConfirmationModal({ type: 'accept', bulkIds: activeFolder.items.map(i => i.id) });
+                        }}
+                        className="px-4 py-2 bg-neutral-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-all"
+                      >
+                        Accept All
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRemarks('');
+                          setConfirmationModal({ type: 'hold', bulkIds: activeFolder.items.map(i => i.id) });
+                        }}
+                        className="px-4 py-2 bg-neutral-100 border border-neutral-200 text-neutral-600 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all animate-pulse"
+                      >
+                        Hold All
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Explorer File View Area */}
+                <div className="custom-scrollbar flex-1 overflow-y-auto p-6 bg-slate-100/50">
+                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-neutral-50 border-b border-neutral-200">
+                          <th className="px-6 py-3 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Artwork</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Status</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100">
+                        {activeFolder.items.map(req => {
+                          const artwork = artworks.find(a => a.id === req.artworkId);
+                          const displayTitle = artwork?.title || req.artworkTitle || 'Deleted Artwork';
+                          const displayCode = artwork?.code || req.artworkCode || '---';
+                          const displayImage = artwork?.imageUrl || req.artworkImage || '';
+                          
+                          return (
+                            <tr key={req.id} className="hover:bg-neutral-50/50 transition-colors">
+                              <td 
+                                className="px-6 py-4 cursor-pointer group/artcell"
+                                onClick={() => setDetailsModal(req)}
+                                title="Click to view details"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 rounded bg-neutral-100 overflow-hidden border border-neutral-200 shadow-sm shrink-0 transition-transform group-hover/artcell:scale-105">
+                                    {displayImage ? (
+                                      <img src={displayImage} className="w-full h-full object-cover" alt="" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400">
+                                        <ArrowRightLeft size={16} />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-neutral-900 text-xs group-hover/artcell:text-blue-600 transition-colors">{displayTitle}</div>
+                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider mt-0.5">{displayCode}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-widest border ${getStatusColor(req.status)}`}>
+                                  {req.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                  {(activeTab === 'incoming' || activeTab === 'on-hold') && req.status === 'Pending' && (currentUser.role === UserRole.ADMIN || req.toBranch === currentUser.branch) && (
+                                    <>
+                                      <button
+                                        onClick={() => setConfirmationModal({ type: 'accept', request: req })}
+                                        className="px-3 py-1 bg-neutral-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-wider rounded shadow-sm"
+                                      >
+                                        Accept
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setDeclineResubmissionReasons([]);
+                                          setConfirmationModal({ type: 'decline', request: req });
+                                        }}
+                                        className="px-3 py-1 bg-white hover:bg-neutral-50 text-neutral-400 hover:text-neutral-600 text-[10px] font-black uppercase tracking-wider rounded border border-neutral-200"
+                                      >
+                                        Decline
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Explorer style Status Bar */}
+                <div className="bg-slate-50 border-t border-slate-200 px-4 py-2.5 flex items-center justify-between text-[10.5px] font-bold text-slate-500 select-none shrink-0">
+                  <div className="flex items-center gap-3">
+                    <Folder size={12} className="text-amber-500" />
+                    <span>{activeFolder.items.length} requests inside this folder</span>
+                  </div>
+                  <div>
+                    <span>Folder Status: <span className="text-slate-800 font-black">{rep.status}</span></span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
 
       <LoadingOverlay
         isVisible={isProcessing}

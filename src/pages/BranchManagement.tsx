@@ -828,7 +828,7 @@ const BranchManagement: React.FC<BranchManagementProps> = ({
       : [];
 
   const auctionForArtist =
-    selectedArtist
+    selectedArtist && (permissions?.canViewAuctioned ?? true)
       ? activeBranchArtworks.filter(
         a => a.artist === selectedArtist && events?.some(e => e.type === 'Auction' && e.artworkIds.includes(a.id))
       )

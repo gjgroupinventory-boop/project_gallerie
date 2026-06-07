@@ -392,9 +392,41 @@ export const useDataSync = ({ activeTab, currentUser, selectedArtworkId }: UseDa
     localStorage.setItem('artisflow-demo-logs', JSON.stringify(logs));
   }, [logs]);
 
+  const filteredArtworks = useMemo(() => {
+    if (currentUser?.role === 'Branch User' && currentUser.branch) {
+      const userBranch = currentUser.branch.trim().toLowerCase();
+      return artworks.filter(a => (a.currentBranch || '').trim().toLowerCase() === userBranch);
+    }
+    return artworks;
+  }, [artworks, currentUser]);
+
+  const filteredAllArtworks = useMemo(() => {
+    if (currentUser?.role === 'Branch User' && currentUser.branch) {
+      const userBranch = currentUser.branch.trim().toLowerCase();
+      return allArtworksIncludingDeleted.filter(a => (a.currentBranch || '').trim().toLowerCase() === userBranch);
+    }
+    return allArtworksIncludingDeleted;
+  }, [allArtworksIncludingDeleted, currentUser]);
+
+  const filteredReturnRecords = useMemo(() => {
+    if (currentUser?.role === 'Branch User' && currentUser.branch) {
+      const userBranch = currentUser.branch.trim().toLowerCase();
+      return returnRecords.filter(r => (r.artworkSnapshot?.currentBranch || '').trim().toLowerCase() === userBranch);
+    }
+    return returnRecords;
+  }, [returnRecords, currentUser]);
+
+  const filteredFramerRecords = useMemo(() => {
+    if (currentUser?.role === 'Branch User' && currentUser.branch) {
+      const userBranch = currentUser.branch.trim().toLowerCase();
+      return framerRecords.filter(f => (f.artworkSnapshot?.currentBranch || '').trim().toLowerCase() === userBranch);
+    }
+    return framerRecords;
+  }, [framerRecords, currentUser]);
+
   const hydratedTransferRequests = useMemo(() => {
     return transferRequests.map(req => {
-      const artwork = artworks.find(a => String(a.id) === String(req.artworkId));
+      const artwork = filteredArtworks.find(a => String(a.id) === String(req.artworkId));
       if (!artwork) return req;
       return {
         ...req,
@@ -403,16 +435,60 @@ export const useDataSync = ({ activeTab, currentUser, selectedArtworkId }: UseDa
         artworkImage: req.artworkImage || artwork.imageUrl
       };
     });
-  }, [transferRequests, artworks]);
+  }, [transferRequests, filteredArtworks]);
 
   return {
-    artworks, allArtworksIncludingDeleted, sales, branches, branchAddresses, branchCategories, branchLogos,
-    exclusiveBranches, syncError, logs, accounts, isLoadingArtworks, isLoadingSales, isLoadingEvents, isLoadingUsers,
-    transferRequests: hydratedTransferRequests, transfers, events, audits, importLogs, preventDuplicateImports, notifications,
-    returnRecords, framerRecords, conversations, messages, setArtworks, setAllArtworksIncludingDeleted, setSales,
-    setBranches, setBranchAddresses, setBranchCategories, setBranchLogos, setExclusiveBranches,
-    setEvents, setAccounts, setLogs, setSyncError, setAudits, setIsLoadingArtworks, setIsLoadingSales, setIsLoadingEvents,
-    setIsLoadingUsers, setTransferRequests, setTransfers, setImportLogs, setPreventDuplicateImports,
-    setNotifications, setReturnRecords, setFramerRecords, setConversations, setMessages
+    artworks: filteredArtworks,
+    allArtworksIncludingDeleted: filteredAllArtworks,
+    sales,
+    branches,
+    branchAddresses,
+    branchCategories,
+    branchLogos,
+    exclusiveBranches,
+    syncError,
+    logs,
+    accounts,
+    isLoadingArtworks,
+    isLoadingSales,
+    isLoadingEvents,
+    isLoadingUsers,
+    transferRequests: hydratedTransferRequests,
+    transfers,
+    events,
+    audits,
+    importLogs,
+    preventDuplicateImports,
+    notifications,
+    returnRecords: filteredReturnRecords,
+    framerRecords: filteredFramerRecords,
+    conversations,
+    messages,
+    setArtworks,
+    setAllArtworksIncludingDeleted,
+    setSales,
+    setBranches,
+    setBranchAddresses,
+    setBranchCategories,
+    setBranchLogos,
+    setExclusiveBranches,
+    setEvents,
+    setAccounts,
+    setLogs,
+    setSyncError,
+    setAudits,
+    setIsLoadingArtworks,
+    setIsLoadingSales,
+    setIsLoadingEvents,
+    setIsLoadingUsers,
+    setTransferRequests,
+    setTransfers,
+    setImportLogs,
+    setPreventDuplicateImports,
+    setNotifications,
+    setReturnRecords,
+    setFramerRecords,
+    setConversations,
+    setMessages
   };
 };

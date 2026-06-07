@@ -66,131 +66,125 @@ const ApprovalsPage: React.FC<ApprovalsPageProps> = (props) => {
         </div>
       </div>
 
-      {/* Tab Switcher Controls Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-3 bg-white rounded-md border border-neutral-200 shadow-sm">
-        {/* Left Side: Category (Sales vs Payments) */}
-        <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm w-fit border border-neutral-200">
-          {canAccessSales && (
+      {/* Main Workspace Container */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-[0_4px_24px_rgba(15,23,42,0.04)] overflow-hidden">
+        {/* Container Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-4 bg-slate-50/50 border-b border-slate-200">
+          {/* Left Side: Category (Sales vs Payments) */}
+          <div className="flex gap-1 p-1 bg-slate-200/60 rounded-lg border border-slate-200/40 w-fit">
+            {canAccessSales && (
+              <button
+                onClick={() => setActiveTab('sales')}
+                className={`flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${
+                  activeTab === 'sales'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <ShieldCheck size={14} />
+                Sales
+                {pendingSalesCount > 0 && (
+                  <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full font-black">
+                    {pendingSalesCount}
+                  </span>
+                )}
+              </button>
+            )}
+            {canAccessPayments && (
+              <button
+                onClick={() => setActiveTab('payments')}
+                className={`flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${
+                  activeTab === 'payments'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <CreditCard size={14} />
+                Payments
+                {pendingPaymentsCount > 0 && (
+                  <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full font-black">
+                    {pendingPaymentsCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Right Side: Status Sub-Tabs */}
+          <div className="flex gap-1 p-1 bg-slate-200/60 rounded-lg border border-slate-200/40 w-fit">
             <button
-              onClick={() => setActiveTab('sales')}
-              className={`flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${
-                activeTab === 'sales'
-                  ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50'
-                  : 'text-neutral-400 hover:text-neutral-600'
+              onClick={() => setSubTab('approval')}
+              className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.25em] rounded-md transition-all flex items-center gap-2 ${
+                subTab === 'approval' 
+                  ? 'bg-white text-slate-800 shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              <ShieldCheck size={14} />
-              Sales
-              {pendingSalesCount > 0 && (
-                <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
-                  {pendingSalesCount}
-                </span>
-              )}
+              Pending Approval
             </button>
-          )}
-          {canAccessPayments && (
             <button
-              onClick={() => setActiveTab('payments')}
-              className={`flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${
-                activeTab === 'payments'
-                  ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50'
-                  : 'text-neutral-400 hover:text-neutral-600'
+              onClick={() => setSubTab('history')}
+              className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.25em] rounded-md transition-all flex items-center gap-2 ${
+                subTab === 'history' 
+                  ? 'bg-white text-slate-800 shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              <CreditCard size={14} />
-              Payments
-              {pendingPaymentsCount > 0 && (
-                <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
-                  {pendingPaymentsCount}
-                </span>
-              )}
+              Approval History
             </button>
-          )}
+          </div>
         </div>
 
-        {/* Right Side: Status Sub-Tabs */}
-        <div className="flex gap-1 p-1 bg-neutral-100 rounded-sm w-fit border border-neutral-200">
-          <button
-            onClick={() => setSubTab('approval')}
-            className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.25em] rounded-sm transition-all flex items-center gap-2 ${
-              subTab === 'approval' 
-                ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' 
-                : 'text-neutral-400 hover:text-neutral-600'
-            }`}
-          >
-            Pending Approval
-            {activeTab === 'sales' && pendingSalesCount > 0 && (
-              <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
-                {pendingSalesCount}
-              </span>
+        {/* Container Body */}
+        <div className="p-6 min-h-[600px] bg-slate-50/20">
+          <AnimatePresence mode="wait">
+            {activeTab === 'sales' && canAccessSales ? (
+              <motion.div
+                key="sales"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <SalesApprovalPage
+                  sales={props.sales}
+                  artworks={props.artworks}
+                  onApproveSale={props.onApproveSale}
+                  onDeclineSale={props.onDeclineSale}
+                  onBulkDeleteSales={props.onBulkDeleteSales}
+                  userPermissions={props.userPermissions}
+                  hideHeader={true}
+                  externalActiveTab={subTab}
+                />
+              </motion.div>
+            ) : activeTab === 'payments' && canAccessPayments ? (
+              <motion.div
+                key="payments"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <PaymentApprovalPage
+                  sales={props.sales}
+                  artworks={props.artworks}
+                  onApprovePaymentEdit={props.onApprovePaymentEdit}
+                  onDeclinePaymentEdit={props.onDeclinePaymentEdit}
+                  onBulkDeletePayments={props.onBulkDeletePayments}
+                  userPermissions={props.userPermissions}
+                  hideHeader={true}
+                  externalActiveTab={subTab}
+                />
+              </motion.div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-neutral-400">
+                 <ShieldCheck size={48} strokeWidth={1} className="mb-4 opacity-20" />
+                 <p className="text-sm font-bold uppercase tracking-widest">Access Restricted</p>
+                 <p className="text-xs mt-1 italic">You do not have permission to view these records.</p>
+              </div>
             )}
-            {activeTab === 'payments' && pendingPaymentsCount > 0 && (
-              <span className="ml-1 w-4 h-4 bg-indigo-600 text-white text-[8px] flex items-center justify-center rounded-full">
-                {pendingPaymentsCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setSubTab('history')}
-            className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.25em] rounded-sm transition-all flex items-center gap-2 ${
-              subTab === 'history' 
-                ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' 
-                : 'text-neutral-400 hover:text-neutral-600'
-            }`}
-          >
-            Approval History
-          </button>
+          </AnimatePresence>
         </div>
-      </div>
-
-      <div className="min-h-[600px]">
-        <AnimatePresence mode="wait">
-          {activeTab === 'sales' && canAccessSales ? (
-            <motion.div
-              key="sales"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <SalesApprovalPage
-                sales={props.sales}
-                artworks={props.artworks}
-                onApproveSale={props.onApproveSale}
-                onDeclineSale={props.onDeclineSale}
-                onBulkDeleteSales={props.onBulkDeleteSales}
-                userPermissions={props.userPermissions}
-                hideHeader={true}
-                externalActiveTab={subTab}
-              />
-            </motion.div>
-          ) : activeTab === 'payments' && canAccessPayments ? (
-            <motion.div
-              key="payments"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <PaymentApprovalPage
-                sales={props.sales}
-                artworks={props.artworks}
-                onApprovePaymentEdit={props.onApprovePaymentEdit}
-                onDeclinePaymentEdit={props.onDeclinePaymentEdit}
-                onBulkDeletePayments={props.onBulkDeletePayments}
-                userPermissions={props.userPermissions}
-                hideHeader={true}
-                externalActiveTab={subTab}
-              />
-            </motion.div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-neutral-400">
-               <ShieldCheck size={48} strokeWidth={1} className="mb-4 opacity-20" />
-               <p className="text-sm font-bold uppercase tracking-widest">Access Restricted</p>
-               <p className="text-xs mt-1 italic">You do not have permission to view these records.</p>
-            </div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );

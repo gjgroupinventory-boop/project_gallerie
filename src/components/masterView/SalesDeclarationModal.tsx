@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '../Modal';
 import { PhoneInput } from '../PhoneInput';
-import { Clock, Shield, Tag, Trash2, Upload } from 'lucide-react';
+import { Clock, Shield, Tag, Trash2, Upload, User, Mail, Phone, UserCheck, FileText, Calendar } from 'lucide-react';
 import { Artwork, ExhibitionEvent, ArtworkStatus } from '../../types';
 
 interface SalesDeclarationModalProps {
@@ -79,7 +79,10 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
     <Modal onClose={onClose} title="Sales Declaration Entry">
       <div className="space-y-6">
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Client Name <span className="text-red-500">*</span></label>
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+            <User size={12} className="text-neutral-400" />
+            Client Name <span className="text-red-500">*</span>
+          </label>
           <input 
             type="text" 
             placeholder="Full Client Name" 
@@ -91,7 +94,10 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Client Email (Optional)</label>
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Mail size={12} className="text-neutral-400" />
+            Client Email (Optional)
+          </label>
           <input 
             type="email" 
             placeholder="client@example.com" 
@@ -102,7 +108,10 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Contact Number <span className="text-red-500">*</span></label>
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Phone size={12} className="text-neutral-400" />
+            Contact Number <span className="text-red-500">*</span>
+          </label>
           <PhoneInput
             value={clientContact}
             onChange={setClientContact}
@@ -211,7 +220,10 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Event / Auction (Optional)</label>
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Calendar size={12} className="text-neutral-400" />
+            Event / Auction (Optional)
+          </label>
           <select
             className="w-full px-5 py-3 bg-neutral-50 border-0 rounded-sm text-sm font-bold text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-500/20 focus:bg-neutral-50 hover:bg-neutral-100 transition-all"
             value={saleEventId}
@@ -234,7 +246,10 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
 
         {/* Delivery Selection */}
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Delivery Option</label>
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Clock size={12} className="text-neutral-400" />
+            Delivery Option
+          </label>
           <div className="flex bg-[#edebe9] p-0.5 rounded-sm w-full">
             {(['Logistics', 'Handed Over'] as const).map(opt => {
               const isHandedOver = opt === 'Handed Over';
@@ -260,6 +275,7 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
         {/* Sale Attachments */}
         <div className="space-y-4 pt-2">
           <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+            <Upload size={12} className="text-neutral-400" />
             Attachments <span className="text-red-500 font-bold normal-case">(Required for Sale)</span>
           </label>
 
@@ -268,7 +284,7 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
               onClick={() => setActiveSaleAttachmentTab('itdr')}
               className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${activeSaleAttachmentTab === 'itdr' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-400'}`}
             >
-              IT/DR
+              IT/DR <span className="text-red-500 ml-1">*</span>
             </button>
             <button
               onClick={() => setActiveSaleAttachmentTab('rsa')}
@@ -364,7 +380,10 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Handling Agent Name <span className="text-red-500">*</span></label>
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+            <UserCheck size={12} className="text-neutral-400" />
+            Handling Agent Name <span className="text-red-500">*</span>
+          </label>
           <input 
             type="text" 
             placeholder="Enter handling agent's name..." 
@@ -376,7 +395,10 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Sale Remarks / Audit Note <span className="text-red-500">*</span></label>
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+            <FileText size={12} className="text-neutral-400" />
+            Sale Remarks / Audit Note <span className="text-red-500">*</span>
+          </label>
           <textarea
             className="w-full px-5 py-3 bg-neutral-50 border-0 rounded-sm text-sm font-bold text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-500/20 focus:bg-neutral-50 hover:bg-neutral-100 transition-all min-h-[80px]"
             placeholder="Required for audit compliance (e.g. client background, special terms...)"
@@ -389,7 +411,7 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
           <button onClick={onClose} className="px-6 py-2.5 rounded-md text-neutral-600 font-bold hover:bg-neutral-100 transition-all transform hover:-translate-y-0.5">Cancel</button>
           <button
             onClick={() => {
-              if (clientName && clientContact && saleRsa.length > 0 && saleRemarks.trim() && handlingAgentName.trim()) {
+              if (clientName && clientContact && saleItdr.length > 0 && saleRsa.length > 0 && saleRemarks.trim() && handlingAgentName.trim()) {
                 wrapAction(async () => {
                   const selectedEvent = events.find(e => e.id === saleEventId);
                   const eventInfo = selectedEvent ? { id: selectedEvent.id, name: selectedEvent.title } : undefined;
@@ -419,7 +441,7 @@ export const SalesDeclarationModal: React.FC<SalesDeclarationModalProps> = ({
               }
             }}
             className="px-8 py-2.5 bg-neutral-900 text-white rounded-md font-bold shadow-lg shadow-neutral-200 hover:shadow-neutral-300 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!clientName || !clientContact || saleRsa.length === 0 || !saleRemarks.trim() || !handlingAgentName.trim()}
+            disabled={!clientName || !clientContact || saleItdr.length === 0 || saleRsa.length === 0 || !saleRemarks.trim() || !handlingAgentName.trim()}
           >
             Confirm Sale
           </button>

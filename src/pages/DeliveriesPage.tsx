@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { SaleRecord, Artwork, ArtworkStatus, SaleStatus, UserPermissions, DeliveryRequest, DeliveryRequestStatus, ActivityLog, Branch, ReturnType, FramerRecord, ReturnRecord, TransferRequest, ExhibitionEvent, UserRole } from '../types';
 import { ICONS } from '../constants';
-import { Truck, Clock, Search, CheckCircle2, AlertCircle, LayoutGrid, List as ListIcon, Users, X, User, Filter, Info, Inbox, RefreshCw, Ban, Paperclip, Upload, Trash2 } from 'lucide-react';
+import { Truck, Clock, Search, CheckCircle2, AlertCircle, LayoutGrid, List as ListIcon, Users, X, User, Filter, Info, Inbox, RefreshCw, Ban, Paperclip, Upload, Trash2, PauseCircle } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { StatusBadge } from '../components/StatusBadge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,7 +13,7 @@ import DeliveryRequestsPage from './DeliveryRequestsPage';
 import { uploadBase64ToStorage } from '../services/supabaseStorageService';
 import { useNotifications } from '../hooks/useNotifications';
 
-type DeliveryTab = 'requests' | 'active' | 'rescheduled' | 'pending' | 'delivered' | 'failed';
+type DeliveryTab = 'requests' | 'active' | 'rescheduled' | 'pending' | 'delivered' | 'failed' | 'hold';
 
 interface DeliveriesPageProps {
   sales: SaleRecord[];
@@ -78,10 +78,11 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
   const [requestModalSale, setRequestModalSale] = useState<{sale: SaleRecord, artwork: any} | null>(null);
   const [finalizeModalSale, setFinalizeModalSale] = useState<{sale: SaleRecord, artwork: any} | null>(null);
   const [detailsSale, setDetailsSale] = useState<{sale: SaleRecord, artwork: Artwork} | null>(null);
-  const [deliveryActionSale, setDeliveryActionSale] = useState<{sale: SaleRecord, artwork: Artwork, mode: 'reschedule' | 'cancel'} | null>(null);
+  const [deliveryActionSale, setDeliveryActionSale] = useState<{sale: SaleRecord, artwork: Artwork, mode: 'reschedule' | 'cancel' | 'hold'} | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleReason, setRescheduleReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
+  const [holdReason, setHoldReason] = useState('');
   const [returnDestination, setReturnDestination] = useState('Main Office');
   const [returnItdrAttachment, setReturnItdrAttachment] = useState('');
   const [returnItdrAttachmentName, setReturnItdrAttachmentName] = useState('');
@@ -94,6 +95,7 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
     if (userPermissions?.canViewDeliveryPending ?? true) tabs.push('pending');
     if (userPermissions?.canViewDeliveryDelivered ?? true) tabs.push('delivered');
     if (userPermissions?.canViewDeliveryFailed ?? true) tabs.push('failed');
+    if (userPermissions?.canViewDeliveryPending ?? true) tabs.push('hold');
     return tabs;
   }, [userPermissions]);
 
@@ -104,6 +106,7 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
     if (userPermissions?.canViewDeliveryPending ?? true) return 'pending';
     if (userPermissions?.canViewDeliveryDelivered ?? true) return 'delivered';
     if (userPermissions?.canViewDeliveryFailed ?? true) return 'failed';
+    if (userPermissions?.canViewDeliveryPending ?? true) return 'hold';
     return 'requests';
   });
 
@@ -193,7 +196,7 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
   };
 
   const tabCounts = useMemo(() => {
-    const counts = { requests: 0, active: 0, rescheduled: 0, pending: 0, delivered: 0, failed: 0 };
+    const counts = { requests: 0, active: 0, rescheduled: 0, pending: 0, delivered: 0, failed: 0, hold: 0 };
     sales.forEach(sale => {
       if (sale.status !== SaleStatus.APPROVED || sale.isCancelled) return;
       
@@ -206,6 +209,7 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
         else if (status === DeliveryRequestStatus.DISPATCHED && isRescheduled) counts.rescheduled++;
         else if (status === DeliveryRequestStatus.DISPATCHED) counts.active++;
         else if (!status || status === DeliveryRequestStatus.APPROVED) counts.pending++;
+        else if (status === DeliveryRequestStatus.HOLD) counts.hold++;
         else if (status === DeliveryRequestStatus.DECLINED || status === DeliveryRequestStatus.CANCELLED) counts.failed++;
       }
     });
@@ -236,6 +240,8 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
         if (!sale.isDelivered) return false;
       } else if (activeTab === 'failed') {
         if (sale.isDelivered || (requestStatus !== DeliveryRequestStatus.DECLINED && requestStatus !== DeliveryRequestStatus.CANCELLED)) return false;
+      } else if (activeTab === 'hold') {
+        if (sale.isDelivered || requestStatus !== DeliveryRequestStatus.HOLD) return false;
       }
       
       const artwork = artworks.find(a => a.id === sale.artworkId) || ({ ...sale.artworkSnapshot, id: sale.artworkId, status: 'Sold', createdAt: sale.saleDate } as any);
@@ -290,6 +296,8 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
         matchesTab = sale.isDelivered === true;
       } else if (activeTab === 'failed') {
         matchesTab = !sale.isDelivered && (requestStatus === DeliveryRequestStatus.DECLINED || requestStatus === DeliveryRequestStatus.CANCELLED);
+      } else if (activeTab === 'hold') {
+        matchesTab = !sale.isDelivered && requestStatus === DeliveryRequestStatus.HOLD;
       }
 
       if (matchesTab) {
@@ -386,6 +394,7 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
     setRescheduleDate('');
     setRescheduleReason('');
     setCancelReason('');
+    setHoldReason('');
     setReturnDestination('Main Office');
     setReturnItdrAttachment('');
     setReturnItdrAttachmentName('');
@@ -400,6 +409,21 @@ const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
       setReturnItdrAttachmentName(file.name);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleHoldDelivery = async () => {
+    if (!deliveryActionSale || !onUpdateSale || !holdReason.trim()) return;
+
+    const existingRemarks = deliveryActionSale.sale.deliveryRequest?.remarks || '';
+    const holdNote = `Placed on hold. Reason: ${holdReason.trim()}`;
+    const updatedRequest: DeliveryRequest = {
+      ...deliveryActionSale.sale.deliveryRequest!,
+      status: DeliveryRequestStatus.HOLD,
+      remarks: existingRemarks ? `${existingRemarks}\n${holdNote}` : holdNote
+    };
+
+    const ok = await onUpdateSale(deliveryActionSale.sale.id, { deliveryRequest: updatedRequest });
+    if (ok !== false) resetDeliveryActionForm();
   };
 
   const handleRescheduleDelivery = async () => {
@@ -588,6 +612,7 @@ return (
                 { id: 'active', label: 'Active', icon: Truck, count: tabCounts.active, color: '#107c10' },
                 { id: 'rescheduled', label: 'Rescheduled', icon: RefreshCw, count: tabCounts.rescheduled, color: '#8764b8' },
                 { id: 'pending', label: 'Pending', icon: Clock, count: tabCounts.pending, color: '#ffb900' },
+                { id: 'hold', label: 'Hold', icon: PauseCircle, count: tabCounts.hold, color: '#b78103' },
                 { id: 'delivered', label: 'Delivered', icon: CheckCircle2, count: tabCounts.delivered, color: '#0078d4' },
                 { id: 'failed', label: 'Failed', icon: AlertCircle, count: tabCounts.failed, color: '#d13438' }
               ].filter(tab => allowedTabs.includes(tab.id as DeliveryTab)).map(tab => {
@@ -777,58 +802,104 @@ return (
 
                                 <div className="mt-auto pt-5 border-t border-[#f3f2f1] grid grid-cols-1 gap-2">
                                      { sale.deliveryRequest?.status === DeliveryRequestStatus.DISPATCHED ? (
-                                       <button 
-                                         disabled={sale.isDelivered}
-                                         onClick={(e) => { e.stopPropagation(); if (!sale.isDelivered) setFinalizeModalSale({ sale, artwork }); }}
-                                         className={`py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all ${
-                                           sale.isDelivered
-                                             ? 'bg-[#f3f2f1] text-[#c8c6c4] cursor-not-allowed'
-                                             : 'bg-[#0078d4] text-white shadow-lg shadow-[#0078d4]/20 hover:bg-[#106ebe]'
-                                         }`}
-                                       >
-                                         {sale.isDelivered ? 'Delivered' : (activeTab === 'rescheduled' ? 'Deliver' : 'Delivery Successful')}
-                                       </button>
+                                        <button 
+                                          disabled={sale.isDelivered}
+                                          onClick={(e) => { e.stopPropagation(); if (!sale.isDelivered) setFinalizeModalSale({ sale, artwork }); }}
+                                          className={`py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all ${
+                                            sale.isDelivered
+                                              ? 'bg-[#f3f2f1] text-[#c8c6c4] cursor-not-allowed'
+                                              : 'bg-[#0078d4] text-white shadow-lg shadow-[#0078d4]/20 hover:bg-[#106ebe]'
+                                          }`}
+                                        >
+                                          {sale.isDelivered ? 'Delivered' : (activeTab === 'rescheduled' ? 'Deliver' : 'Delivery Successful')}
+                                        </button>
                                      ) : sale.deliveryRequest?.status === DeliveryRequestStatus.APPROVED ? (
-                                       <button 
-                                         onClick={(e) => { 
-                                           e.stopPropagation(); 
-                                           setRequestModalSale({ sale, artwork }); 
-                                         }}
-                                         className="py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#107c10] text-white hover:bg-[#0b590b] shadow-md shadow-[#107c10]/10"
-                                       >
-                                         Dispatch Delivery
-                                       </button>
+                                        <button 
+                                          onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            setRequestModalSale({ sale, artwork }); 
+                                          }}
+                                          className="py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#107c10] text-white hover:bg-[#0b590b] shadow-md shadow-[#107c10]/10"
+                                        >
+                                          Dispatch Delivery
+                                        </button>
+                                     ) : sale.deliveryRequest?.status === DeliveryRequestStatus.HOLD ? (
+                                        <button 
+                                          onClick={async (e) => { 
+                                            e.stopPropagation(); 
+                                            if (window.confirm('Are you sure you want to resume this delivery?')) {
+                                              const updatedRequest = {
+                                                ...sale.deliveryRequest,
+                                                status: DeliveryRequestStatus.DISPATCHED,
+                                                remarks: `${sale.deliveryRequest?.remarks || ''}\nResumed delivery by ${currentUser?.name || 'User'}`
+                                              };
+                                              if (sale.deliveryRequest) {
+                                                const updatedRequest = {
+                                                  ...sale.deliveryRequest,
+                                                  status: DeliveryRequestStatus.DISPATCHED,
+                                                  remarks: `${sale.deliveryRequest.remarks || ''}\nResumed delivery by ${currentUser?.name || 'User'}`
+                                                };
+                                                onUpdateSale && await onUpdateSale(sale.id, { deliveryRequest: updatedRequest });
+                                              }
+                                            }
+                                          }}
+                                          className="py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#107c10] text-white hover:bg-[#0b590b] shadow-md shadow-[#107c10]/10"
+                                        >
+                                          Resume Delivery
+                                        </button>
                                      ) : (
-                                       <button 
-                                         disabled={sale.isDelivered || sale.deliveryRequest?.status === DeliveryRequestStatus.PENDING}
-                                         onClick={(e) => { e.stopPropagation(); setRequestModalSale({ sale, artwork }); }}
-                                         className={`py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all ${
-                                           sale.isDelivered ? 'bg-[#f3f2f1] text-[#c8c6c4] cursor-not-allowed' :
-                                           sale.deliveryRequest?.status === DeliveryRequestStatus.PENDING ? 'bg-[#f3f2f1] text-[#a19f9d] cursor-not-allowed' :
-                                           'bg-[#323130] text-white hover:bg-[#000000] shadow-md shadow-black/10'
-                                         }`}
-                                       >
-                                         {sale.deliveryRequest?.status === DeliveryRequestStatus.DECLINED || sale.deliveryRequest?.status === DeliveryRequestStatus.CANCELLED ? 'Retry Payload' : (sale.deliveryRequest ? 'Edit Payload' : 'Schedule')}
-                                       </button>
+                                        <button 
+                                          disabled={sale.isDelivered || sale.deliveryRequest?.status === DeliveryRequestStatus.PENDING}
+                                          onClick={(e) => { e.stopPropagation(); setRequestModalSale({ sale, artwork }); }}
+                                          className={`py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all ${
+                                            sale.isDelivered ? 'bg-[#f3f2f1] text-[#c8c6c4] cursor-not-allowed' :
+                                            sale.deliveryRequest?.status === DeliveryRequestStatus.PENDING ? 'bg-[#f3f2f1] text-[#a19f9d] cursor-not-allowed' :
+                                            'bg-[#323130] text-white hover:bg-[#000000] shadow-md shadow-black/10'
+                                          }`}
+                                        >
+                                          {sale.deliveryRequest?.status === DeliveryRequestStatus.DECLINED || sale.deliveryRequest?.status === DeliveryRequestStatus.CANCELLED ? 'Retry Payload' : (sale.deliveryRequest ? 'Edit Payload' : 'Schedule')}
+                                        </button>
                                      )}
                                    {(activeTab === 'active' || activeTab === 'rescheduled') ? (
-                                     <div className="grid grid-cols-2 gap-2">
-                                       <button
-                                         onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'reschedule' }); }}
-                                         className="py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#f3f2f1] text-[#323130] hover:bg-[#edebe9] flex items-center justify-center gap-1.5"
-                                       >
-                                         <RefreshCw size={12} />
-                                         Reschedule
-                                       </button>
-                                       <button
-                                         onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'cancel' }); }}
-                                         className="py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#fde7e9] text-[#a4262c] hover:bg-[#f8d7da] flex items-center justify-center gap-1.5"
-                                       >
-                                         <Ban size={12} />
-                                         Cancel
-                                       </button>
-                                     </div>
-                                   ) : null}
+                                      <div className="grid grid-cols-3 gap-1.5">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'reschedule' }); }}
+                                          className="py-2.5 rounded-sm text-[8px] font-black uppercase tracking-tight transition-all bg-[#f3f2f1] text-[#323130] hover:bg-[#edebe9] flex items-center justify-center gap-1"
+                                          title="Reschedule"
+                                        >
+                                          <RefreshCw size={11} />
+                                          Resched
+                                        </button>
+                                        <button
+                                          onClick={async (e) => { 
+                                            e.stopPropagation(); 
+                                            if (window.confirm('Are you sure you want to put this delivery on hold?')) {
+                                              if (sale.deliveryRequest) {
+                                                const updatedRequest = {
+                                                  ...sale.deliveryRequest,
+                                                  status: DeliveryRequestStatus.HOLD,
+                                                  remarks: `${sale.deliveryRequest.remarks || ''}\nPlaced on hold by ${currentUser?.name || 'User'}`
+                                                };
+                                                onUpdateSale && await onUpdateSale(sale.id, { deliveryRequest: updatedRequest });
+                                              }
+                                            }
+                                          }}
+                                          className="py-2.5 rounded-sm text-[8px] font-black uppercase tracking-tight transition-all bg-[#fff8e6] text-[#b78103] hover:bg-[#fff1cc] flex items-center justify-center gap-1"
+                                          title="Put on Hold"
+                                        >
+                                          <PauseCircle size={11} />
+                                          Hold
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'cancel' }); }}
+                                          className="py-2.5 rounded-sm text-[8px] font-black uppercase tracking-tight transition-all bg-[#fde7e9] text-[#a4262c] hover:bg-[#f8d7da] flex items-center justify-center gap-1"
+                                          title="Cancel"
+                                        >
+                                          <Ban size={11} />
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    ) : null}
                                 </div>
                              </div>
                           </motion.div>
@@ -891,47 +962,85 @@ return (
                                       >
                                         {sale.deliveryRequest?.status === DeliveryRequestStatus.DECLINED || sale.deliveryRequest?.status === DeliveryRequestStatus.CANCELLED ? 'Retry' : (sale.deliveryRequest ? 'Edit' : 'Schedule')}
                                       </button>
-                                       { sale.deliveryRequest?.status === DeliveryRequestStatus.DISPATCHED ? (
-                                         <>
-                                           <button
-                                             onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'cancel' }); }}
-                                             className="px-4 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#fde7e9] text-[#a4262c] hover:bg-[#f8d7da] flex items-center gap-1.5"
-                                           >
-                                             <Ban size={12} />
-                                             Cancel
-                                           </button>
-                                           <button
-                                             onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'reschedule' }); }}
-                                             className="px-4 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#f3f2f1] text-[#323130] hover:bg-[#edebe9] flex items-center gap-1.5"
-                                           >
-                                             <RefreshCw size={12} />
-                                             Reschedule
-                                           </button>
-                                           <button 
-                                             onClick={(e) => { e.stopPropagation(); setFinalizeModalSale({ sale, artwork }); }}
-                                             className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#0078d4] text-white shadow-md shadow-[#0078d4]/20 hover:bg-[#106ebe]"
-                                           >
-                                             {activeTab === 'rescheduled' ? 'Deliver' : 'Delivery Successful'}
-                                           </button>
-                                         </>
-                                       ) : sale.deliveryRequest?.status === DeliveryRequestStatus.APPROVED ? (
-                                         <button 
-                                           onClick={(e) => { 
-                                             e.stopPropagation(); 
-                                             setRequestModalSale({ sale, artwork }); 
-                                           }}
-                                           className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#107c10] text-white hover:bg-[#0b590b] shadow-md shadow-[#107c10]/10"
-                                         >
-                                           Dispatch Delivery
-                                         </button>
-                                       ) : (
-                                         <button 
-                                           disabled={true}
-                                           className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#f3f2f1] text-[#a19f9d] cursor-not-allowed"
-                                         >
-                                           {sale.isDelivered ? 'Done' : 'Approve Delivery'}
-                                         </button>
-                                       )}
+                                        { sale.deliveryRequest?.status === DeliveryRequestStatus.DISPATCHED ? (
+                                          <>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'cancel' }); }}
+                                              className="px-4 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#fde7e9] text-[#a4262c] hover:bg-[#f8d7da] flex items-center gap-1.5"
+                                            >
+                                              <Ban size={12} />
+                                              Cancel
+                                            </button>
+                                            <button
+                                              onClick={async (e) => { 
+                                                e.stopPropagation(); 
+                                                if (window.confirm('Are you sure you want to put this delivery on hold?')) {
+                                                  if (sale.deliveryRequest) {
+                                                    const updatedRequest = {
+                                                      ...sale.deliveryRequest,
+                                                      status: DeliveryRequestStatus.HOLD,
+                                                      remarks: `${sale.deliveryRequest.remarks || ''}\nPlaced on hold by ${currentUser?.name || 'User'}`
+                                                    };
+                                                    onUpdateSale && await onUpdateSale(sale.id, { deliveryRequest: updatedRequest });
+                                                  }
+                                                }
+                                              }}
+                                              className="px-4 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#fff8e6] text-[#b78103] hover:bg-[#fff1cc] flex items-center gap-1.5"
+                                            >
+                                              <PauseCircle size={12} />
+                                              Hold
+                                            </button>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); setDeliveryActionSale({ sale, artwork, mode: 'reschedule' }); }}
+                                              className="px-4 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#f3f2f1] text-[#323130] hover:bg-[#edebe9] flex items-center gap-1.5"
+                                            >
+                                              <RefreshCw size={12} />
+                                              Reschedule
+                                            </button>
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); setFinalizeModalSale({ sale, artwork }); }}
+                                              className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#0078d4] text-white shadow-md shadow-[#0078d4]/20 hover:bg-[#106ebe]"
+                                            >
+                                              {activeTab === 'rescheduled' ? 'Deliver' : 'Delivery Successful'}
+                                            </button>
+                                          </>
+                                        ) : sale.deliveryRequest?.status === DeliveryRequestStatus.APPROVED ? (
+                                          <button 
+                                            onClick={(e) => { 
+                                              e.stopPropagation(); 
+                                              setRequestModalSale({ sale, artwork }); 
+                                            }}
+                                            className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#107c10] text-white hover:bg-[#0b590b] shadow-md shadow-[#107c10]/10"
+                                          >
+                                            Dispatch Delivery
+                                          </button>
+                                        ) : sale.deliveryRequest?.status === DeliveryRequestStatus.HOLD ? (
+                                          <button 
+                                            onClick={async (e) => { 
+                                              e.stopPropagation(); 
+                                              if (window.confirm('Are you sure you want to resume this delivery?')) {
+                                                if (sale.deliveryRequest) {
+                                                  const updatedRequest = {
+                                                    ...sale.deliveryRequest,
+                                                    status: DeliveryRequestStatus.DISPATCHED,
+                                                    remarks: `${sale.deliveryRequest.remarks || ''}\nResumed delivery by ${currentUser?.name || 'User'}`
+                                                  };
+                                                  onUpdateSale && await onUpdateSale(sale.id, { deliveryRequest: updatedRequest });
+                                                }
+                                              }
+                                            }}
+                                            className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#107c10] text-white hover:bg-[#0b590b] shadow-md shadow-[#107c10]/10"
+                                          >
+                                            Resume Delivery
+                                          </button>
+                                        ) : (
+                                          <button 
+                                            disabled={true}
+                                            className="px-5 py-2 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all bg-[#f3f2f1] text-[#a19f9d] cursor-not-allowed"
+                                          >
+                                            {sale.isDelivered ? 'Done' : 'Approve Delivery'}
+                                          </button>
+                                        )}
                                       {onDeleteSale && (
                                         <button
                                           onClick={(e) => {
@@ -984,7 +1093,8 @@ return (
               <div className="p-6 border-b border-[#edebe9] flex items-center justify-between bg-[#faf9f8]">
                 <div>
                   <h2 className="text-sm font-black text-[#323130] uppercase tracking-tight">
-                    {deliveryActionSale.mode === 'reschedule' ? 'Reschedule Delivery' : 'Cancel Delivery'}
+                    {deliveryActionSale.mode === 'reschedule' ? 'Reschedule Delivery' : 
+                     deliveryActionSale.mode === 'hold' ? 'Put Delivery On Hold' : 'Cancel Delivery'}
                   </h2>
                   <p className="text-[#605e5c] text-[10px] font-bold uppercase tracking-widest mt-1">
                     {deliveryActionSale.sale.clientName} / {deliveryActionSale.artwork.code}
@@ -1029,6 +1139,20 @@ return (
                         onChange={(e) => setRescheduleReason(e.target.value)}
                         className="w-full px-4 py-3 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130] focus:bg-white focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] outline-none transition-all min-h-[90px] resize-none"
                         placeholder="Client requested a new schedule, unavailable receiving contact, route issue..."
+                      />
+                    </div>
+                  </>
+                ) : deliveryActionSale.mode === 'hold' ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-[#605e5c] uppercase tracking-widest ml-1">
+                        Hold Reason <span className="text-[#d13438]">*</span>
+                      </label>
+                      <textarea
+                        value={holdReason}
+                        onChange={(e) => setHoldReason(e.target.value)}
+                        className="w-full px-4 py-3 bg-[#faf9f8] border border-[#edebe9] rounded-sm text-sm font-bold text-[#323130] focus:bg-white focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] outline-none transition-all min-h-[90px] resize-none"
+                        placeholder="Client requested to delay, address verification pending, payment verification pending..."
                       />
                     </div>
                   </>
@@ -1136,6 +1260,16 @@ return (
                     }`}
                   >
                     Reschedule Delivery
+                  </button>
+                ) : deliveryActionSale.mode === 'hold' ? (
+                  <button
+                    onClick={handleHoldDelivery}
+                    disabled={!holdReason.trim()}
+                    className={`flex-1 px-4 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all ${
+                      holdReason.trim() ? 'bg-[#b78103] text-white hover:bg-[#966902] shadow-lg shadow-[#b78103]/20' : 'bg-[#edebe9] text-[#a19f9d] cursor-not-allowed'
+                    }`}
+                  >
+                    Place On Hold
                   </button>
                 ) : (
                   <button

@@ -197,6 +197,12 @@ export const useArtworkSales = () => {
     setArtworks(updatedArtworks);
     setAllArtworksIncludingDeleted(prev => prev.map(a => String(a.id) === String(id) ? (updatedArtworks.find(ua => String(ua.id) === String(id)) || a) : a));
     logActivity(id, 'Sale Declared', `Client: ${clientName}. Remarks: ${remarks}`, updatedArt);
+    pushNotification(
+      'Sale Declared',
+      `New sale declaration submitted by ${agentName} for client "${clientName}". Awaiting approval.`,
+      'sales',
+      id
+    );
     if (IS_DEMO_MODE) return true;
 
     // Upload Attachments to Storage
@@ -325,6 +331,11 @@ export const useArtworkSales = () => {
     setArtworks(updatedArtworks);
     setAllArtworksIncludingDeleted(updatedArtworks);
     setSales(prev => [...prev, ...newSales]);
+    pushNotification(
+      'Bulk Sales Declared',
+      `New bulk sale declaration (${newSales.length} items) submitted by ${agentName} for client "${client}". Awaiting approval.`,
+      'sales'
+    );
     if (IS_DEMO_MODE) return true;
 
     const processedNewSales = await Promise.all(newSales.map(async (sale) => {
@@ -400,7 +411,15 @@ export const useArtworkSales = () => {
     setSales(updatedSales);
     const sale = updatedSales.find(s => String(s.artworkId) === String(artworkId) && s.isCancelled);
 
-    logActivity(artworkId, 'Sale Cancelled', `Sale to ${sale?.clientName || 'Unknown'} was cancelled`, updatedArtworks.find(a => String(a.id) === String(artworkId)));
+    const art = updatedArtworks.find(a => String(a.id) === String(artworkId));
+    logActivity(artworkId, 'Sale Cancelled', `Sale to ${sale?.clientName || 'Unknown'} was cancelled`, art);
+
+    pushNotification(
+      'Sale Cancelled',
+      `Sale order for artwork "${art?.title || 'Unknown'}" has been cancelled.`,
+      'sales',
+      artworkId
+    );
 
     if (IS_DEMO_MODE) return true;
     if (!sale) return false;
