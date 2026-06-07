@@ -20,7 +20,10 @@ export const Modal: React.FC<ModalProps> = ({ children, onClose, title, footer, 
             aria-modal="true"
             aria-labelledby="modal-title"
         >
-            <div className={`bg-white w-full ${maxWidth} shadow-[0_32px_80px_rgba(0,0,0,0.3),0_8px_32px_rgba(0,0,0,0.1)] max-h-[92vh] flex flex-col animate-in fade-in zoom-in duration-200 border border-slate-200 ${isSharp ? 'rounded-none' : 'rounded-xl'} overflow-hidden`}>
+            <div 
+                style={isSharp ? { borderRadius: '0px' } : undefined}
+                className={`bg-white w-full ${maxWidth} shadow-[0_32px_80px_rgba(0,0,0,0.3),0_8px_32px_rgba(0,0,0,0.1)] max-h-[92vh] flex flex-col animate-in fade-in zoom-in duration-200 border border-slate-200 ${isSharp ? 'rounded-none' : 'rounded-xl'} overflow-hidden`}
+            >
                 <div className="px-8 py-5 flex justify-between items-center bg-white border-b border-[#F3F3F3] flex-shrink-0">
                     <h3 
                         id="modal-title"
