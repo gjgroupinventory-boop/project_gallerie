@@ -84,7 +84,7 @@
   /* Chrome, Safari and Opera */
 }
 
-/* Force all dialog modal cards to be rectangular */
+/* Force all dialog modal cards to have a crisp 4px border radius */
 [role="dialog"] div {
-  border-radius: 0px !important;
+  border-radius: 4px !important;
 }
