@@ -105,6 +105,15 @@ export interface UserPermissions {
   canViewDeliveryPending: boolean;
   canViewDeliveryDelivered: boolean;
   canViewDeliveryFailed: boolean;
+  canViewOpsBranches: boolean;
+  canViewOpsExhibitions: boolean;
+  canViewOpsAuctions: boolean;
+  canViewOpsSales: boolean;
+  canViewOpsReservations: boolean;
+  canViewOpsInventory: boolean;
+  canViewOpsReturnToArtist: boolean;
+  canViewOpsForFraming: boolean;
+  canViewOpsMonitoring: boolean;
   accessibleTabs?: string[];
 }
 

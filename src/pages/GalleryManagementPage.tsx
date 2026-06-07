@@ -98,14 +98,15 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
     if (!props.userPermissions) return;
 
     const isRestricted =
-      (activeTab === 'branches' && !props.userPermissions.canManageEvents && !props.userPermissions.canAddArtwork) ||
-      ((activeTab === 'events' || activeTab === 'auctions') && !props.userPermissions.canManageEvents) ||
-      (activeTab === 'auctions' && props.currentUser?.role === 'Branch User') ||
-      (activeTab === 'sales' && !props.userPermissions.canViewSalesHistory) ||
-      (activeTab === 'reservations' && !props.userPermissions.canViewReserved) ||
-      (activeTab === 'returned' && !props.userPermissions.canViewBackToArtist) ||
-      (activeTab === 'framer' && !props.userPermissions.canViewForFraming) ||
-      (activeTab === 'monitoring' && !props.userPermissions.canManageAccounts && !props.userPermissions.canManageEvents);
+      (activeTab === 'branches' && !(props.userPermissions.canViewOpsBranches ?? (props.userPermissions.canManageEvents || props.userPermissions.canAddArtwork))) ||
+      (activeTab === 'events' && !(props.userPermissions.canViewOpsExhibitions ?? props.userPermissions.canManageEvents)) ||
+      (activeTab === 'auctions' && !(props.userPermissions.canViewOpsAuctions ?? (props.userPermissions.canManageEvents && props.currentUser?.role !== 'Branch User'))) ||
+      (activeTab === 'sales' && !(props.userPermissions.canViewOpsSales ?? props.userPermissions.canViewSalesHistory)) ||
+      (activeTab === 'reservations' && !(props.userPermissions.canViewOpsReservations ?? props.userPermissions.canViewReserved)) ||
+      (activeTab === 'inventory' && !(props.userPermissions.canViewOpsInventory ?? true)) ||
+      (activeTab === 'returned' && !(props.userPermissions.canViewOpsReturnToArtist ?? props.userPermissions.canViewBackToArtist)) ||
+      (activeTab === 'framer' && !(props.userPermissions.canViewOpsForFraming ?? props.userPermissions.canViewForFraming)) ||
+      (activeTab === 'monitoring' && !(props.userPermissions.canViewOpsMonitoring ?? (props.userPermissions.canManageAccounts || props.userPermissions.canManageEvents)));
 
     if (isRestricted) {
       handleTabChange('inventory');
@@ -213,7 +214,7 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                 <span>Life</span>
               </div>
               <div className="flex bg-neutral-900/50 border border-white/5 rounded-xl p-1 gap-1 overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-1 pb-2 md:pb-1">
-                {(props.userPermissions?.canManageEvents || props.userPermissions?.canAddArtwork) && (
+                {(props.userPermissions?.canViewOpsBranches ?? (props.userPermissions?.canManageEvents || props.userPermissions?.canAddArtwork)) && (
                   <button
                     onClick={() => handleTabChange('branches')}
                     className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'branches'
@@ -227,37 +228,35 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                     <span>Branches</span>
                   </button>
                 )}
-                {props.userPermissions?.canManageEvents && (
-                  <>
-                    <button
-                      onClick={() => handleTabChange('events')}
-                      className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'events'
-                        ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
-                        : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                        }`}
-                    >
-                      <span className={`transition-all duration-300 group-hover:scale-115 group-hover:-translate-y-0.5 ${activeTab === 'events' ? 'text-blue-600' : 'text-blue-400'}`}>
-                        <Calendar size={18} />
-                      </span>
-                      <span>Exhibitions</span>
-                    </button>
-                    {props.currentUser?.role !== 'Branch User' && (
-                      <button
-                        onClick={() => handleTabChange('auctions')}
-                        className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'auctions'
-                          ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
-                          : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                          }`}
-                      >
-                        <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-45 ${activeTab === 'auctions' ? 'text-amber-600' : 'text-amber-400'}`}>
-                          <Gavel size={18} />
-                        </span>
-                        <span>For Auction</span>
-                      </button>
-                    )}
-                  </>
+                {(props.userPermissions?.canViewOpsExhibitions ?? props.userPermissions?.canManageEvents) && (
+                  <button
+                    onClick={() => handleTabChange('events')}
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'events'
+                      ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                      }`}
+                  >
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:-translate-y-0.5 ${activeTab === 'events' ? 'text-blue-600' : 'text-blue-400'}`}>
+                      <Calendar size={18} />
+                    </span>
+                    <span>Exhibitions</span>
+                  </button>
                 )}
-                {props.userPermissions?.canViewSalesHistory && (
+                {(props.userPermissions?.canViewOpsAuctions ?? (props.userPermissions?.canManageEvents && props.currentUser?.role !== 'Branch User')) && (
+                  <button
+                    onClick={() => handleTabChange('auctions')}
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'auctions'
+                      ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                      }`}
+                  >
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-45 ${activeTab === 'auctions' ? 'text-amber-600' : 'text-amber-400'}`}>
+                      <Gavel size={18} />
+                    </span>
+                    <span>For Auction</span>
+                  </button>
+                )}
+                {(props.userPermissions?.canViewOpsSales ?? props.userPermissions?.canViewSalesHistory) && (
                   <button
                     onClick={() => handleTabChange('sales')}
                     className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'sales'
@@ -271,7 +270,7 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                     <span>Sales</span>
                   </button>
                 )}
-                {props.userPermissions?.canViewReserved && (
+                {(props.userPermissions?.canViewOpsReservations ?? props.userPermissions?.canViewReserved) && (
                   <button
                     onClick={() => handleTabChange('reservations')}
                     className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'reservations'
@@ -285,19 +284,21 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                     <span>Reservations</span>
                   </button>
                 )}
-                <button
-                  onClick={() => handleTabChange('inventory')}
-                  className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'inventory'
-                    ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                    }`}
-                >
-                  <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-12 ${activeTab === 'inventory' ? 'text-indigo-600' : 'text-indigo-400'}`}>
-                    <Box size={18} />
-                  </span>
-                  <span>Inventory</span>
-                </button>
-                {props.userPermissions?.canViewBackToArtist && (
+                {(props.userPermissions?.canViewOpsInventory ?? true) && (
+                  <button
+                    onClick={() => handleTabChange('inventory')}
+                    className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'inventory'
+                      ? 'bg-white text-neutral-900 shadow-lg shadow-neutral-900/10'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                      }`}
+                  >
+                    <span className={`transition-all duration-300 group-hover:scale-115 group-hover:rotate-12 ${activeTab === 'inventory' ? 'text-indigo-600' : 'text-indigo-400'}`}>
+                      <Box size={18} />
+                    </span>
+                    <span>Inventory</span>
+                  </button>
+                )}
+                {(props.userPermissions?.canViewOpsReturnToArtist ?? props.userPermissions?.canViewBackToArtist) && (
                   <button
                     onClick={() => handleTabChange('returned')}
                     className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'returned'
@@ -311,7 +312,7 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                     <span>Return to Artist</span>
                   </button>
                 )}
-                {props.userPermissions?.canViewForFraming && (
+                {(props.userPermissions?.canViewOpsForFraming ?? props.userPermissions?.canViewForFraming) && (
                   <button
                     onClick={() => handleTabChange('framer')}
                     className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'framer'
@@ -325,7 +326,7 @@ const GalleryManagementPage: React.FC<GalleryManagementPageProps> = (props) => {
                     <span>For Framing</span>
                   </button>
                 )}
-                {(props.userPermissions?.canManageAccounts || props.userPermissions?.canManageEvents) && (
+                {(props.userPermissions?.canViewOpsMonitoring ?? (props.userPermissions?.canManageAccounts || props.userPermissions?.canManageEvents)) && (
                   <button
                     onClick={() => handleTabChange('monitoring')}
                     className={`group flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeTab === 'monitoring'
