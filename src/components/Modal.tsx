@@ -12,7 +12,7 @@ interface ModalProps {
 }
 
 export const Modal: React.FC<ModalProps> = ({ children, onClose, title, footer, maxWidth = 'max-w-2xl', variant = 'sharp' }) => {
-    const isSharp = variant !== 'default';
+    const isSharp = true;
     return createPortal(
         <div 
             className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 sm:p-6"
